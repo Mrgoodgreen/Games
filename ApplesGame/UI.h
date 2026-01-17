@@ -13,6 +13,8 @@ namespace ApplesGame
         sf::Text gameOverText;
         sf::Text restartHintText;
         sf::Text startHintText;
+
+        sf::Text leaderboardLines[10];
     };
 
     void InitUI(UIState& uiState, const sf::Font& font);

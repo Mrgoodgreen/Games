@@ -39,43 +39,60 @@ namespace ApplesGame
         uiState.restartHintText.setString("Press SPACE to restart");
         uiState.restartHintText.setOrigin(GetTextOrigin(uiState.restartHintText, { 0.5f, 0.f }));
 
-        // Start hint text (используется в GameMain для подсказки режимов)
+        // Start hint text (используется в меню выбора режима)
         uiState.startHintText.setFont(font);
         uiState.startHintText.setCharacterSize(24);
         uiState.startHintText.setFillColor(sf::Color::White);
         uiState.startHintText.setString("Press 1-5 to choose mode");
         uiState.startHintText.setOrigin(GetTextOrigin(uiState.startHintText, { 0.5f, 0.5f }));
+
+        // строки таблицы лидеров
+        for (int i = 0; i < 10; ++i)
+        {
+            uiState.leaderboardLines[i].setFont(font);
+            uiState.leaderboardLines[i].setCharacterSize(20);
+            uiState.leaderboardLines[i].setFillColor(sf::Color::White);
+        }
     }
 
     void UpdateUI(UIState& uiState, const GameState& gameState, float timeDelta)
     {
         (void)timeDelta;
 
-        // Score
         uiState.scoreText.setString("Score: " + std::to_string(gameState.numEatenApples));
-
-        // Best
         uiState.bestScoreText.setString("Best: " + std::to_string(gameState.bestScore));
 
-        // Game over – по флагу isGameOver
         uiState.isGameOverTextVisible = gameState.isGameOver;
+
+        // формируем строки таблицы (только в Game Over)
+        if (gameState.isGameOver)
+        {
+            int lines = static_cast<int>(gameState.leaderboard.size());
+            lines = std::min(lines, 10);
+            for (int i = 0; i < lines; ++i)
+            {
+                const Record& r = gameState.leaderboard[i];
+                std::string line = std::to_string(i + 1) + ". " + r.name + " .... " + std::to_string(r.score);
+                uiState.leaderboardLines[i].setString(line);
+            }
+            for (int i = lines; i < 10; ++i)
+            {
+                uiState.leaderboardLines[i].setString("");
+            }
+        }
     }
 
     void DrawUI(UIState& uiState, sf::RenderWindow& window)
     {
-        // Score
         uiState.scoreText.setPosition(10.f, 10.f);
         window.draw(uiState.scoreText);
 
-        // Best score
         uiState.bestScoreText.setPosition(10.f, 40.f);
         window.draw(uiState.bestScoreText);
 
-        // Input hint (top-right)
         uiState.inputHintText.setPosition(window.getSize().x - 10.f, 10.f);
         window.draw(uiState.inputHintText);
 
-        // Game Over
         if (uiState.isGameOverTextVisible)
         {
             uiState.gameOverText.setPosition(
@@ -89,6 +106,20 @@ namespace ApplesGame
                 window.getSize().y / 2.f + 50.f
             );
             window.draw(uiState.restartHintText);
+
+            // таблица лидеров под Game Over
+            float startY = window.getSize().y / 2.f + 100.f;
+            for (int i = 0; i < 10; ++i)
+            {
+                if (uiState.leaderboardLines[i].getString().isEmpty())
+                    break;
+
+                uiState.leaderboardLines[i].setPosition(
+                    window.getSize().x / 2.f - 200.f,
+                    startY + i * 24.f
+                );
+                window.draw(uiState.leaderboardLines[i]);
+            }
         }
     }
 }

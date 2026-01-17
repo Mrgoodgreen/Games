@@ -1,12 +1,83 @@
 ﻿#include "Game.h"
 #include "Math.h"
+
 #include <cassert>
 #include <algorithm>
+#include <cstdlib>
+#include <ctime>
 
 namespace ApplesGame
 {
+    // ---------- вспомогательные данные для таблицы лидеров ----------
+
+    const char* NAMES_POOL[] = {
+        "Alice", "Bob", "Carol", "Dave", "Eve",
+        "Frank", "Grace", "Heidi", "Ivan", "Judy"
+    };
+    const int NAMES_POOL_SIZE = sizeof(NAMES_POOL) / sizeof(NAMES_POOL[0]);
+
+    // простая сортировка выбором по убыванию score (без std::sort)
+    void SortLeaderboard(std::vector<Record>& board)
+    {
+        for (size_t i = 0; i + 1 < board.size(); ++i)
+        {
+            size_t bestIndex = i;
+            for (size_t j = i + 1; j < board.size(); ++j)
+            {
+                if (board[j].score > board[bestIndex].score)
+                    bestIndex = j;
+            }
+            if (bestIndex != i)
+                std::swap(board[i], board[bestIndex]);
+        }
+    }
+
+    void GenerateRandomLeaderboard(GameState& gameState, int count)
+    {
+        gameState.leaderboard.clear();
+        count = std::max(5, std::min(count, 10)); // от 5 до 10 записей
+
+        for (int i = 0; i < count; ++i)
+        {
+            Record r;
+            r.name = NAMES_POOL[std::rand() % NAMES_POOL_SIZE];
+            r.score = 20 + std::rand() % 120; // очки 20–139
+            gameState.leaderboard.push_back(r);
+        }
+
+        gameState.isLeaderboardInitialized = true;
+    }
+
+    void UpdateLeaderboardWithPlayer(GameState& gameState)
+    {
+        Record playerRecord;
+        playerRecord.name = "Player";
+        playerRecord.score = gameState.numEatenApples;
+
+        bool replaced = false;
+        for (auto& r : gameState.leaderboard)
+        {
+            if (r.name == "Player")
+            {
+                r.score = playerRecord.score;
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced)
+        {
+            gameState.leaderboard.push_back(playerRecord);
+        }
+
+        SortLeaderboard(gameState.leaderboard);
+    }
+
+    // ---------- основная логика ----------
+
     void InitGame(GameState& gameState)
     {
+        std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
         // ресурсы
         assert(gameState.playerTexture.loadFromFile(RESOURCES_PATH + "Pacman.png"));
         assert(gameState.appleTexture.loadFromFile(RESOURCES_PATH + "Apple.png"));
@@ -33,14 +104,17 @@ namespace ApplesGame
 
     void RestartGame(GameState& gameState)
     {
-        // безопасное значение, если что‑то не установили
+        // первая инициализация leaderboard – делаем новую таблицу
+        if (!gameState.isLeaderboardInitialized)
+        {
+            GenerateRandomLeaderboard(gameState, 7); // например, 7 записей
+        }
+
         if (gameState.applesCount <= 0 || gameState.applesCount > MAX_APPLES)
             gameState.applesCount = 20;
 
-        // препятствия: базовое значение
         gameState.currentObstaclesCount = BASE_NUM_OBSTACLES;
 
-        // ускорение / отсутствие ускорения
         if (gameState.gameModeMask & MODE_SPEED_ACCEL_ON)
             gameState.playerAcceleration = ACCELERATION;
         else if (gameState.gameModeMask & MODE_SPEED_ACCEL_OFF)
@@ -51,13 +125,13 @@ namespace ApplesGame
         InitPlayer(gameState.player, gameState.playerTexture);
         gameState.player.speed = INITIAL_SPEED;
 
-        // инициализация яблок
+        // яблоки
         for (int i = 0; i < gameState.applesCount; ++i)
         {
             InitApple(gameState.apples[i], gameState.appleTexture);
         }
 
-        // инициализация препятствий
+        // препятствия
         for (int i = 0; i < gameState.currentObstaclesCount; ++i)
         {
             InitObstacle(gameState.obstacles[i], gameState.obstacleTexture);
@@ -101,55 +175,48 @@ namespace ApplesGame
     {
         if (!gameState.isGameOver)
         {
-            // движение игрока
             UpdatePlayer(gameState.player, timeDelta);
 
-            // проверка столкновений с яблоками
+            // столкновения с яблоками
             for (int i = 0; i < gameState.applesCount; ++i)
             {
                 if (HasPlayerCollisionWithApple(gameState.player, gameState.apples[i]))
                 {
-                    // конечный / бесконечный режим
                     if (gameState.gameModeMask & MODE_APPLES_FINITE)
                     {
-                        // удаляем яблоко: переносим последнее на его место
                         gameState.apples[i] = gameState.apples[gameState.applesCount - 1];
                         --gameState.applesCount;
-                        --i; // обработать новое яблоко на этом индексе
+                        --i;
                     }
-                    else // бесконечные яблоки
+                    else
                     {
                         InitApple(gameState.apples[i], gameState.appleTexture);
                     }
 
                     gameState.numEatenApples++;
 
-                    // лучший счёт обновляем только по окончании игры, но
-                    // можно и здесь, если хочешь «живой» best
                     if (gameState.numEatenApples > gameState.bestScore)
                         gameState.bestScore = gameState.numEatenApples;
 
-                    // звук поедания
                     gameState.eatAppleSound.play();
 
-                    // ускорение включено?
                     if (gameState.gameModeMask & MODE_SPEED_ACCEL_ON)
                     {
                         gameState.player.speed += gameState.playerAcceleration;
                     }
 
-                    // если конечный режим и яблок не осталось – конец игры
                     if ((gameState.gameModeMask & MODE_APPLES_FINITE) &&
                         gameState.applesCount == 0)
                     {
                         gameState.isGameOver = true;
                         gameState.timeSinceGameOver = 0.f;
+                        UpdateLeaderboardWithPlayer(gameState);
                         break;
                     }
                 }
             }
 
-            // столкновение с препятствиями
+            // столкновения с препятствиями
             for (int i = 0; i < gameState.currentObstaclesCount && !gameState.isGameOver; ++i)
             {
                 if (HasPlayerCollisionWithObstacle(gameState.player, gameState.obstacles[i]))
@@ -157,6 +224,7 @@ namespace ApplesGame
                     gameState.isGameOver = true;
                     gameState.timeSinceGameOver = 0.f;
                     gameState.hitSound.play();
+                    UpdateLeaderboardWithPlayer(gameState);
                 }
             }
 
@@ -165,9 +233,8 @@ namespace ApplesGame
             {
                 gameState.isGameOver = true;
                 gameState.timeSinceGameOver = 0.f;
-
-                // звук удара
                 gameState.hitSound.play();
+                UpdateLeaderboardWithPlayer(gameState);
             }
         }
         else
@@ -187,7 +254,6 @@ namespace ApplesGame
             DrawApple(gameState.apples[i], window);
         }
 
-        // камни
         for (int i = 0; i < gameState.currentObstaclesCount; ++i)
         {
             DrawObstacle(gameState.obstacles[i], window);

@@ -2,6 +2,9 @@
 
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+#include <vector>
+#include <string>
+
 #include "Player.h"
 #include "Apple.h"
 #include "Obstacle.h"
@@ -10,6 +13,12 @@
 
 namespace ApplesGame
 {
+    struct Record
+    {
+        std::string name;
+        int score = 0;
+    };
+
     struct GameState
     {
         Player player;
@@ -24,7 +33,7 @@ namespace ApplesGame
         int currentObstaclesCount = BASE_NUM_OBSTACLES;
 
         int numEatenApples = 0;
-        int bestScore = 0;            // лучший счёт за сессию (можно позже сохранить в файл)
+        int bestScore = 0;
 
         UIState uiState;
 
@@ -43,12 +52,16 @@ namespace ApplesGame
         sf::Sound eatAppleSound;
         sf::Sound hitSound;
 
-        // битовая маска режима игры
+        // Режим игры (битовая маска)
         unsigned int gameModeMask = 0;
 
         // скорость
         float playerBaseSpeed = INITIAL_SPEED;
         float playerAcceleration = ACCELERATION;
+
+        // таблица лидеров
+        std::vector<Record> leaderboard;
+        bool isLeaderboardInitialized = false;
     };
 
     void InitGame(GameState& gameState);
