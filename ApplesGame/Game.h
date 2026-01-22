@@ -23,12 +23,12 @@ namespace ApplesGame
     {
         Player player;
 
-        // динамический массив яблок
+        // Dynamic apple array - FIXED: now using applesDefaultCount for allocation
         Apple* apples = nullptr;
-        int applesCount = 0;          // текущее количество на поле
-        int applesTargetTotal = -1;   // -1 = бесконечно, иначе конечное число
+        int applesDefaultCount = 20;    // Default count selected by user (restored on restart)
+        int applesCount = 0;            // Current count on field (decreases in finite mode)
 
-        // препятствия
+        // Obstacles
         Obstacle obstacles[MAX_OBSTACLES];
         int currentObstaclesCount = BASE_NUM_OBSTACLES;
 
@@ -40,26 +40,26 @@ namespace ApplesGame
         bool isGameOver = false;
         float timeSinceGameOver = 0.f;
 
-        // Ресурсы
+        // Resources
         sf::Font font;
         sf::Texture playerTexture;
         sf::Texture appleTexture;
         sf::Texture obstacleTexture;
 
-        // Звуки
+        // Sounds
         sf::SoundBuffer eatAppleBuffer;
         sf::SoundBuffer hitBuffer;
         sf::Sound eatAppleSound;
         sf::Sound hitSound;
 
-        // Режим игры (битовая маска)
+        // Game mode (bitwise mask) - FIXED: now explicitly set all flags
         unsigned int gameModeMask = 0;
 
-        // скорость
+        // Speed
         float playerBaseSpeed = INITIAL_SPEED;
         float playerAcceleration = ACCELERATION;
 
-        // таблица лидеров
+        // Leaderboard
         std::vector<Record> leaderboard;
         bool isLeaderboardInitialized = false;
     };
@@ -69,4 +69,5 @@ namespace ApplesGame
     void HandleInput(GameState& gameState);
     void UpdateGame(GameState& gameState, float timeDelta);
     void DrawGame(GameState& gameState, sf::RenderWindow& window);
+    void CleanupGame(GameState& gameState);
 }
