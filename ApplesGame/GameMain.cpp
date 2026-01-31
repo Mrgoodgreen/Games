@@ -5,6 +5,8 @@ using namespace ApplesGame;
 
 int main()
 {
+    
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
     // Create window
     sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEGHT), "Apples Game");
     window.setFramerateLimit(60);
