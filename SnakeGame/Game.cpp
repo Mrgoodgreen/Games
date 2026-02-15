@@ -1,6 +1,6 @@
 #include "Game.h"
 #include "GameConfig.h"
-#include <cstdlib>
+#include <iostream>
 #include <ctime>
 
 Game::Game()
@@ -27,22 +27,37 @@ Game::~Game()
 
 void Game::Initialize()
 {
-    m_Snake.LoadTextures();
-    m_Apple.LoadTexture();
-    m_Menu.LoadFont();
+    std::cout << "=== Snake Game Initialization ===" << std::endl;
+
+    bool snakeTexturesLoaded = m_Snake.LoadTextures();
+    std::cout << "Snake textures loaded: " << (snakeTexturesLoaded ? "YES" : "NO") << std::endl;
+
+    bool appleTextureLoaded = m_Apple.LoadTexture();
+    std::cout << "Apple texture loaded: " << (appleTextureLoaded ? "YES" : "NO") << std::endl;
+
+    bool menuFontLoaded = m_Menu.LoadFont();
+    std::cout << "Menu font loaded: " << (menuFontLoaded ? "YES" : "NO") << std::endl;
+
     m_Settings.Initialize();
-    m_ScoreTable.LoadFont();
+    std::cout << "Settings initialized" << std::endl;
+
+    bool scoreTableFontLoaded = m_ScoreTable.LoadFont();
+    std::cout << "Score table font loaded: " << (scoreTableFontLoaded ? "YES" : "NO") << std::endl;
+
     m_ScoreTable.LoadScores();
+    std::cout << "Scores loaded" << std::endl;
+
+    std::cout << "Initial game state: MainMenu" << std::endl;
+    std::cout << "==================================" << std::endl;
 }
 
 void Game::Run()
 {
     m_Clock.restart();
-    
+
     while (m_Window.isOpen())
     {
         float deltaTime = m_Clock.restart().asSeconds();
-        
         ProcessEvents();
         Update(deltaTime);
         Render();
@@ -58,7 +73,7 @@ void Game::ProcessEvents()
         {
             m_Window.close();
         }
-        
+
         if (event.type == sf::Event::KeyPressed)
         {
             if (m_WaitingForNameInput)
@@ -69,48 +84,53 @@ void Game::ProcessEvents()
             {
                 switch (m_CurrentState)
                 {
-                    case Utils::GameState::MainMenu:
-                        HandleMainMenuInput(event.key.code);
-                        break;
-                    case Utils::GameState::DifficultySelection:
-                        HandleDifficultyMenuInput(event.key.code);
-                        break;
-                    case Utils::GameState::SettingsMenu:
-                        HandleSettingsMenuInput(event.key.code);
-                        break;
-                    case Utils::GameState::ScoreTable:
-                        HandleScoreTableInput(event.key.code);
-                        break;
-                    case Utils::GameState::Playing:
-                        HandleGameInput(event.key.code);
-                        break;
-                    case Utils::GameState::Paused:
-                        HandlePauseInput(event.key.code);
-                        break;
-                    case Utils::GameState::GameOver:
-                        HandleGameOverInput(event.key.code);
-                        break;
+                case Utils::GameState::MainMenu:
+                    HandleMainMenuInput(event.key.code);
+                    break;
+                case Utils::GameState::DifficultySelection:
+                    HandleDifficultyMenuInput(event.key.code);
+                    break;
+                case Utils::GameState::SettingsMenu:
+                    HandleSettingsMenuInput(event.key.code);
+                    break;
+                case Utils::GameState::ScoreTable:
+                    HandleScoreTableInput(event.key.code);
+                    break;
+                case Utils::GameState::Playing:
+                    HandleGameInput(event.key.code);
+                    break;
+                case Utils::GameState::Paused:
+                    HandlePauseInput(event.key.code);
+                    break;
+                case Utils::GameState::GameOver:
+                    HandleGameOverInput(event.key.code);
+                    break;
                 }
             }
         }
-        
+
+        // ИСПРАВЛЕНИЕ: Обработка ввода текста для имени игрока
         if (event.type == sf::Event::TextEntered && m_WaitingForNameInput)
         {
+            std::cout << "Text entered: " << event.text.unicode << std::endl;
+
             if (event.text.unicode >= 32 && event.text.unicode < 128)
             {
                 if (m_PlayerName.length() < GameConfig::MaxNameLength)
                 {
                     char enteredChar = static_cast<char>(event.text.unicode);
-                    if ((enteredChar >= 'a' && enteredChar <= 'z') || 
+                    if ((enteredChar >= 'a' && enteredChar <= 'z') ||
                         (enteredChar >= 'A' && enteredChar <= 'Z'))
                     {
                         m_PlayerName += enteredChar;
+                        std::cout << "Current name: " << m_PlayerName << std::endl;
                     }
                 }
             }
-            else if (event.text.unicode == 8 && !m_PlayerName.empty())
+            else if (event.text.unicode == 8 && !m_PlayerName.empty()) // Backspace
             {
                 m_PlayerName.pop_back();
+                std::cout << "Backspace, current name: " << m_PlayerName << std::endl;
             }
         }
     }
@@ -131,25 +151,24 @@ void Game::HandleMainMenuInput(sf::Keyboard::Key key)
     else if (key == sf::Keyboard::Enter)
     {
         m_Settings.PlayButtonClick();
-        
         switch (m_MenuSelection)
         {
-            case 0:
-                StartGame();
-                break;
-            case 1:
-                m_CurrentState = Utils::GameState::DifficultySelection;
-                break;
-            case 2:
-                m_CurrentState = Utils::GameState::ScoreTable;
-                break;
-            case 3:
-                m_CurrentState = Utils::GameState::SettingsMenu;
-                m_SettingsSelection = 0;
-                break;
-            case 4:
-                m_Window.close();
-                break;
+        case 0:
+            StartGame();
+            break;
+        case 1:
+            m_CurrentState = Utils::GameState::DifficultySelection;
+            break;
+        case 2:
+            m_CurrentState = Utils::GameState::ScoreTable;
+            break;
+        case 3:
+            m_CurrentState = Utils::GameState::SettingsMenu;
+            m_SettingsSelection = 0;
+            break;
+        case 4:
+            m_Window.close();
+            break;
         }
     }
 }
@@ -192,7 +211,6 @@ void Game::HandleSettingsMenuInput(sf::Keyboard::Key key)
     else if (key == sf::Keyboard::Enter)
     {
         m_Settings.PlayButtonClick();
-        
         if (m_SettingsSelection == 0)
         {
             m_Settings.SetSoundEnabled(!m_Settings.IsSoundEnabled());
@@ -228,7 +246,7 @@ void Game::HandleGameInput(sf::Keyboard::Key key)
     {
         return;
     }
-    
+
     if (key == sf::Keyboard::W)
     {
         m_Snake.SetDirection(Utils::Direction::Up);
@@ -264,7 +282,6 @@ void Game::HandlePauseInput(sf::Keyboard::Key key)
     else if (key == sf::Keyboard::Enter)
     {
         m_Settings.PlayButtonClick();
-        
         if (m_PauseSelection == 0)
         {
             m_CurrentState = Utils::GameState::Playing;
@@ -291,7 +308,6 @@ void Game::HandleGameOverInput(sf::Keyboard::Key key)
     else if (key == sf::Keyboard::Enter)
     {
         m_Settings.PlayButtonClick();
-        
         if (m_GameOverSelection == 0)
         {
             StartGame();
@@ -310,17 +326,20 @@ void Game::HandleNameInputInput(sf::Keyboard::Key key)
     {
         m_Settings.PlayButtonClick();
         m_NameInputYesSelected = !m_NameInputYesSelected;
+        std::cout << "Name input selection: " << (m_NameInputYesSelected ? "YES" : "NO") << std::endl;
     }
     else if (key == sf::Keyboard::Enter)
     {
         m_Settings.PlayButtonClick();
-        
+
         if (m_NameInputYesSelected)
         {
             std::string finalName = m_PlayerName.empty() ? "XYZ" : m_PlayerName;
             m_ScoreTable.AddScore(finalName, m_CurrentScore);
+            m_ScoreTable.SaveScores(); 
+            std::cout << "Score added and saved: " << finalName << " - " << m_CurrentScore << std::endl;
         }
-        
+
         m_WaitingForNameInput = false;
         m_PlayerName.clear();
     }
@@ -350,20 +369,20 @@ void Game::UpdateGame(float deltaTime)
 {
     float currentSpeed = GameConfig::DifficultySpeed[m_CurrentDifficulty];
     m_Snake.Update(deltaTime, currentSpeed);
-    
+
     sf::Vector2i headPos = m_Snake.GetHeadPosition();
-    
+
     if (m_GameField.IsWallCollision(headPos) || m_Snake.CheckSelfCollision())
     {
         GameOver();
         return;
     }
-    
+
     if (headPos == m_Apple.GetPosition())
     {
         m_Settings.PlayEatApple();
         m_CurrentScore += GameConfig::DifficultyPoints[m_CurrentDifficulty];
-        m_Snake.Grow(GameConfig::SnakeGrowthAmount);
+        m_Snake.Grow();
         SpawnApple();
     }
 }
@@ -371,64 +390,69 @@ void Game::UpdateGame(float deltaTime)
 void Game::Render()
 {
     m_Window.clear(GameConfig::BackgroundColor);
-    
+
     switch (m_CurrentState)
     {
-        case Utils::GameState::MainMenu:
-            m_Menu.DrawMainMenu(m_Window, m_MenuSelection);
-            break;
+    case Utils::GameState::MainMenu:
+        m_Menu.DrawMainMenu(m_Window, m_MenuSelection);
+        break;
+
+    case Utils::GameState::DifficultySelection:
+        m_Menu.DrawDifficultyMenu(m_Window, m_CurrentDifficulty);
+        break;
+
+    case Utils::GameState::SettingsMenu:
+        m_Menu.DrawSettingsMenu(
+            m_Window,
+            m_SettingsSelection,
+            m_Settings.IsSoundEnabled(),
+            m_Settings.IsMusicEnabled()
+        );
+        break;
+
+    case Utils::GameState::ScoreTable:
+        m_ScoreTable.DrawFullTable(m_Window);
+        break;
+
+    case Utils::GameState::Playing:
+        m_GameField.Draw(m_Window);
+        m_Snake.Draw(m_Window);
+        m_Apple.Draw(m_Window);
+        m_ScoreTable.DrawInGame(m_Window, m_CurrentScore);
+
+        if (m_IsCountingDown)
+        {
+            m_Menu.DrawCountdown(m_Window, m_CountdownTimer);
+        }
+        break;
+
+    case Utils::GameState::Paused:
+        m_GameField.Draw(m_Window);
+        m_Snake.Draw(m_Window);
+        m_Apple.Draw(m_Window);
+        m_ScoreTable.DrawInGame(m_Window, m_CurrentScore);
+        m_Menu.DrawPauseMenu(m_Window, m_PauseSelection);
+        break;
+
+    case Utils::GameState::GameOver:
+        
+        m_GameField.Draw(m_Window);
+        m_Snake.Draw(m_Window);
+        m_Apple.Draw(m_Window);
+
+        if (m_WaitingForNameInput)
+        {
             
-        case Utils::GameState::DifficultySelection:
-            m_Menu.DrawDifficultyMenu(m_Window, m_CurrentDifficulty);
-            break;
+            m_ScoreTable.DrawNameInput(m_Window, m_PlayerName, m_NameInputYesSelected);
+        }
+        else
+        {
             
-        case Utils::GameState::SettingsMenu:
-            m_Menu.DrawSettingsMenu(
-                m_Window, 
-                m_SettingsSelection, 
-                m_Settings.IsSoundEnabled(),
-                m_Settings.IsMusicEnabled()
-            );
-            break;
-            
-        case Utils::GameState::ScoreTable:
-            m_ScoreTable.DrawFullTable(m_Window);
-            break;
-            
-        case Utils::GameState::Playing:
-            m_GameField.Draw(m_Window);
-            m_Snake.Draw(m_Window);
-            m_Apple.Draw(m_Window);
-            m_ScoreTable.DrawInGame(m_Window, m_CurrentScore);
-            
-            if (m_IsCountingDown)
-            {
-                m_Menu.DrawCountdown(m_Window, m_CountdownTimer);
-            }
-            break;
-            
-        case Utils::GameState::Paused:
-            m_GameField.Draw(m_Window);
-            m_Snake.Draw(m_Window);
-            m_Apple.Draw(m_Window);
-            m_ScoreTable.DrawInGame(m_Window, m_CurrentScore);
-            m_Menu.DrawPauseMenu(m_Window, m_PauseSelection);
-            break;
-            
-        case Utils::GameState::GameOver:
-            m_GameField.Draw(m_Window);
-            
-            if (m_WaitingForNameInput)
-            {
-                m_ScoreTable.DrawNameInput(m_Window, m_PlayerName, m_NameInputYesSelected);
-            }
-            else
-            {
-                m_ScoreTable.DrawPopup(m_Window, m_CurrentScore, m_GameOverSelection);
-            }
-            break;
+            m_ScoreTable.DrawPopup(m_Window, m_CurrentScore, m_GameOverSelection);
+        }
+        break;
     }
-    
+
     m_Window.display();
 }
 
@@ -444,12 +468,10 @@ void Game::StartGame()
 void Game::ResetGame()
 {
     m_CurrentScore = 0;
-    
     sf::Vector2i startPos(
         GameConfig::FieldWidth / 2,
         GameConfig::FieldHeight / 2
     );
-    
     m_Snake.Initialize(startPos, GameConfig::InitialSnakeLength);
     SpawnApple();
 }
@@ -459,15 +481,15 @@ void Game::GameOver()
     m_Settings.StopMusic();
     m_Settings.PlayGameOver();
     m_Settings.PlayCollision();
-    
     m_CurrentState = Utils::GameState::GameOver;
     m_GameOverSelection = 0;
-    
+
     if (m_ScoreTable.IsHighScore(m_CurrentScore))
     {
         m_WaitingForNameInput = true;
         m_NameInputYesSelected = false;
         m_PlayerName.clear();
+        std::cout << "New high score! Waiting for name input..." << std::endl;
     }
     else
     {
@@ -479,22 +501,21 @@ void Game::SpawnApple()
 {
     sf::Vector2i newPosition;
     bool validPosition = false;
-    
     int maxAttempts = 1000;
     int attempts = 0;
-    
+
     while (!validPosition && attempts < maxAttempts)
     {
         newPosition.x = 1 + std::rand() % (GameConfig::FieldWidth - 2);
         newPosition.y = 1 + std::rand() % (GameConfig::FieldHeight - 2);
-        
+
         if (!m_Snake.IsPositionOnSnake(newPosition))
         {
             validPosition = true;
         }
-        
+
         attempts++;
     }
-    
+
     m_Apple.SetPosition(newPosition);
 }

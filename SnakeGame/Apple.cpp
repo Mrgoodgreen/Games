@@ -24,8 +24,8 @@ sf::Vector2i Apple::GetPosition() const
 void Apple::Draw(sf::RenderWindow& window)
 {
     sf::Vector2f screenPos(
-        GameConfig::FieldOffsetX + m_Position.x * GameConfig::GridSize,
-        GameConfig::FieldOffsetY + m_Position.y * GameConfig::GridSize
+        static_cast<float>(GameConfig::FieldOffsetX + m_Position.x * GameConfig::GridSize),
+        static_cast<float>(GameConfig::FieldOffsetY + m_Position.y * GameConfig::GridSize)
     );
 
     m_Sprite.setPosition(screenPos);
@@ -43,8 +43,8 @@ bool Apple::LoadTexture()
 
         sf::Vector2u textureSize = m_Texture.getSize();
         m_Sprite.setScale(
-            static_cast<float>(GameConfig::GridSize) / textureSize.x,
-            static_cast<float>(GameConfig::GridSize) / textureSize.y
+            static_cast<float>(GameConfig::GridSize) / static_cast<float>(textureSize.x),
+            static_cast<float>(GameConfig::GridSize) / static_cast<float>(textureSize.y)
         );
 
         return true;

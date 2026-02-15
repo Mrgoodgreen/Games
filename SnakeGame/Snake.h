@@ -9,26 +9,36 @@ public:
     Snake();
     ~Snake();
 
-    void Initialize(sf::Vector2i startPosition, int length);
-    void Update(float deltaTime, float speed);
-    void Draw(sf::RenderWindow& window);
-    void Grow(int segments);
-    void SetDirection(Utils::Direction newDirection);
-    
-    sf::Vector2i GetHeadPosition() const;
-    Utils::Direction GetDirection() const;
-    bool CheckSelfCollision() const;
-    bool IsPositionOnSnake(sf::Vector2i position) const;
-    int GetLength() const;
+    // Initialization and reset
+    void Initialize(const sf::Vector2i& startPos, int initialLength);
+    void Reset();
 
+    // Movement and direction
+    void SetDirection(Utils::Direction dir);
+    void Update(float deltaTime, float speed);
+    void Move();
+    void Grow();
+
+    // Collision detection
+    bool CheckSelfCollision() const;
+    bool CheckWallCollision() const;
+    bool IsPositionOnSnake(const sf::Vector2i& position) const;
+
+    // Getters
+    sf::Vector2i GetHeadPosition() const;
+    const std::vector<sf::Vector2i>& GetBody() const;
+    Utils::Direction GetDirection() const;
+
+    // Rendering
+    void Draw(sf::RenderWindow& window);
     bool LoadTextures();
 
 private:
     std::vector<sf::Vector2i> m_Body;
-    Utils::Direction m_CurrentDirection;
+    Utils::Direction m_Direction;
     Utils::Direction m_NextDirection;
+
     float m_MoveTimer;
-    int m_GrowthPending;
 
     sf::Texture m_HeadTexture;
     sf::Texture m_BodyTexture;

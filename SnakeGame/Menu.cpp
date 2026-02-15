@@ -1,6 +1,9 @@
 #include "Menu.h"
 #include "GameConfig.h"
 #include <cassert>
+#include <string>
+#include <iostream>
+#include <filesystem> 
 
 Menu::Menu()
 {
@@ -12,11 +15,16 @@ Menu::~Menu()
 
 void Menu::DrawMainMenu(sf::RenderWindow& window, int selectedOption)
 {
+    if (m_Font.getInfo().family.empty())
+    {
+        std::cerr << "ERROR: Font not loaded in DrawMainMenu!" << std::endl;
+        return;
+    }
     sf::Text titleText;
     titleText.setFont(m_Font);
     titleText.setString("SNAKE GAME");
     titleText.setCharacterSize(48);
-    titleText.setFillColor(GameConfig::SelectedColor);
+    titleText.setFillColor(sf::Color::White);
     titleText.setPosition(250.0f, 80.0f);
     window.draw(titleText);
 
@@ -34,16 +42,16 @@ void Menu::DrawMainMenu(sf::RenderWindow& window, int selectedOption)
         itemText.setFont(m_Font);
         itemText.setString(menuItems[i]);
         itemText.setCharacterSize(28);
-        itemText.setFillColor(i == selectedOption ? GameConfig::SelectedColor : GameConfig::TextColor);
-        itemText.setPosition(320.0f, 200.0f + i * 60.0f);
+        itemText.setFillColor(i == selectedOption ? sf::Color::Green : sf::Color::White);
+        itemText.setPosition(320.0f, 200.0f + static_cast<float>(i) * 60.0f);
         window.draw(itemText);
     }
 
     sf::Text controlsText;
     controlsText.setFont(m_Font);
-    controlsText.setString("Controls: W/S - Navigate, Enter - Select");
+    controlsText.setString("Controls: W/S - Navigate, Enter - Select, B - Back");
     controlsText.setCharacterSize(16);
-    controlsText.setFillColor(sf::Color(150, 150, 150));
+    controlsText.setFillColor(sf::Color(200, 200, 200));
     controlsText.setPosition(220.0f, 550.0f);
     window.draw(controlsText);
 }
@@ -64,8 +72,8 @@ void Menu::DrawDifficultyMenu(sf::RenderWindow& window, int selectedDifficulty)
         itemText.setFont(m_Font);
         itemText.setString(GameConfig::DifficultyNames[i]);
         itemText.setCharacterSize(26);
-        itemText.setFillColor(i == selectedDifficulty ? GameConfig::SelectedColor : GameConfig::TextColor);
-        itemText.setPosition(240.0f, 180.0f + i * 60.0f);
+        itemText.setFillColor(i == selectedDifficulty ? sf::Color::Green : sf::Color::White);
+        itemText.setPosition(240.0f, 180.0f + static_cast<float>(i) * 60.0f);
         window.draw(itemText);
     }
 
@@ -92,7 +100,7 @@ void Menu::DrawSettingsMenu(sf::RenderWindow& window, int selectedOption, bool s
     soundText.setFont(m_Font);
     soundText.setString(std::string("Sound: ") + (soundEnabled ? "ON" : "OFF"));
     soundText.setCharacterSize(28);
-    soundText.setFillColor(selectedOption == 0 ? GameConfig::SelectedColor : GameConfig::TextColor);
+    soundText.setFillColor(selectedOption == 0 ? sf::Color::Green : sf::Color::White);
     soundText.setPosition(300.0f, 220.0f);
     window.draw(soundText);
 
@@ -100,7 +108,7 @@ void Menu::DrawSettingsMenu(sf::RenderWindow& window, int selectedOption, bool s
     musicText.setFont(m_Font);
     musicText.setString(std::string("Music: ") + (musicEnabled ? "ON" : "OFF"));
     musicText.setCharacterSize(28);
-    musicText.setFillColor(selectedOption == 1 ? GameConfig::SelectedColor : GameConfig::TextColor);
+    musicText.setFillColor(selectedOption == 1 ? sf::Color::Green : sf::Color::White);
     musicText.setPosition(300.0f, 280.0f);
     window.draw(musicText);
 
@@ -114,7 +122,7 @@ void Menu::DrawSettingsMenu(sf::RenderWindow& window, int selectedOption, bool s
 
     sf::Text controlsText;
     controlsText.setFont(m_Font);
-    controlsText.setString("W/S - Navigate, Enter - Toggle/Select");
+    controlsText.setString("W/S - Navigate, Enter - Toggle/Select, B - back");
     controlsText.setCharacterSize(16);
     controlsText.setFillColor(sf::Color(150, 150, 150));
     controlsText.setPosition(240.0f, 520.0f);
@@ -141,7 +149,7 @@ void Menu::DrawPauseMenu(sf::RenderWindow& window, int selectedOption)
     pauseText.setFont(m_Font);
     pauseText.setString("PAUSED");
     pauseText.setCharacterSize(32);
-    pauseText.setFillColor(GameConfig::SelectedColor);
+    pauseText.setFillColor(sf::Color::Yellow);  
     pauseText.setPosition(320.0f, 230.0f);
     window.draw(pauseText);
 
@@ -149,7 +157,7 @@ void Menu::DrawPauseMenu(sf::RenderWindow& window, int selectedOption)
     continueText.setFont(m_Font);
     continueText.setString("Continue");
     continueText.setCharacterSize(24);
-    continueText.setFillColor(selectedOption == 0 ? GameConfig::SelectedColor : GameConfig::TextColor);
+    continueText.setFillColor(selectedOption == 0 ? sf::Color::Green : sf::Color::White);
     continueText.setPosition(320.0f, 290.0f);
     window.draw(continueText);
 
@@ -157,7 +165,7 @@ void Menu::DrawPauseMenu(sf::RenderWindow& window, int selectedOption)
     exitText.setFont(m_Font);
     exitText.setString("Exit to Menu");
     exitText.setCharacterSize(24);
-    exitText.setFillColor(selectedOption == 1 ? GameConfig::SelectedColor : GameConfig::TextColor);
+    exitText.setFillColor(selectedOption == 1 ? sf::Color::Green : sf::Color::White);
     exitText.setPosition(300.0f, 330.0f);
     window.draw(exitText);
 }
@@ -165,25 +173,36 @@ void Menu::DrawPauseMenu(sf::RenderWindow& window, int selectedOption)
 void Menu::DrawCountdown(sf::RenderWindow& window, float timeRemaining)
 {
     int countdown = static_cast<int>(timeRemaining) + 1;
-    
+
     sf::Text countdownText;
     countdownText.setFont(m_Font);
     countdownText.setString(std::to_string(countdown));
     countdownText.setCharacterSize(72);
     countdownText.setFillColor(GameConfig::SelectedColor);
-    
+
     sf::FloatRect textBounds = countdownText.getLocalBounds();
     countdownText.setPosition(
-        (GameConfig::WindowWidth - textBounds.width) / 2.0f,
-        (GameConfig::WindowHeight - textBounds.height) / 2.0f - 50.0f
+        (static_cast<float>(GameConfig::WindowWidth) - textBounds.width) / 2.0f,
+        (static_cast<float>(GameConfig::WindowHeight) - textBounds.height) / 2.0f - 50.0f
     );
-    
+
     window.draw(countdownText);
 }
 
 bool Menu::LoadFont()
 {
     bool loaded = m_Font.loadFromFile(GameConfig::FontPath);
-    assert(loaded && "Failed to load font");
+
+    if (!loaded)
+    {
+        std::cerr << "ERROR: Failed to load font from: " << GameConfig::FontPath << std::endl;
+        std::cerr << "Current working directory: " << std::filesystem::current_path() << std::endl;
+
+        // Try alternative paths
+        loaded = m_Font.loadFromFile("arial.ttf");
+        if (!loaded) loaded = m_Font.loadFromFile("C:/Windows/Fonts/arial.ttf");
+    }
+
+    assert(loaded && "Failed to load font from all paths");
     return loaded;
 }

@@ -1,12 +1,10 @@
 #include "Snake.h"
 #include "GameConfig.h"
-#include <cassert>
 
 Snake::Snake()
-    : m_CurrentDirection(Utils::Direction::Right)
+    : m_Direction(Utils::Direction::Right)
     , m_NextDirection(Utils::Direction::Right)
     , m_MoveTimer(0.0f)
-    , m_GrowthPending(0)
 {
 }
 
@@ -14,124 +12,94 @@ Snake::~Snake()
 {
 }
 
-void Snake::Initialize(sf::Vector2i startPosition, int length)
+void Snake::Initialize(const sf::Vector2i& startPos, int initialLength)
 {
     m_Body.clear();
-    m_CurrentDirection = Utils::Direction::Right;
+    m_Direction = Utils::Direction::Right;
     m_NextDirection = Utils::Direction::Right;
     m_MoveTimer = 0.0f;
-    m_GrowthPending = 0;
 
-    for (int i = 0; i < length; ++i)
+    // Add initial segments
+    for (int i = 0; i < initialLength; ++i)
     {
-        m_Body.push_back(sf::Vector2i(startPosition.x - i, startPosition.y));
+        m_Body.push_back(sf::Vector2i(startPos.x - i, startPos.y));
     }
 }
 
-void Snake::Update(float deltaTime, float speed)
+void Snake::Reset()
 {
-    if (speed <= 0.0f)
+    m_Body.clear();
+    m_Direction = Utils::Direction::Right;
+    m_NextDirection = Utils::Direction::Right;
+    m_MoveTimer = 0.0f;
+
+    // Starting position in the center
+    sf::Vector2i startPos(GameConfig::FieldWidth / 2, GameConfig::FieldHeight / 2);
+
+    // Add initial segments
+    for (int i = 0; i < GameConfig::InitialSnakeLength; ++i)
+    {
+        m_Body.push_back(sf::Vector2i(startPos.x - i, startPos.y));
+    }
+}
+
+void Snake::SetDirection(Utils::Direction dir)
+{
+    // Prevent 180 degree turns
+    if ((m_Direction == Utils::Direction::Up && dir == Utils::Direction::Down) ||
+        (m_Direction == Utils::Direction::Down && dir == Utils::Direction::Up) ||
+        (m_Direction == Utils::Direction::Left && dir == Utils::Direction::Right) ||
+        (m_Direction == Utils::Direction::Right && dir == Utils::Direction::Left))
     {
         return;
     }
 
+    m_NextDirection = dir;
+}
+
+void Snake::Update(float deltaTime, float speed)
+{
     m_MoveTimer += deltaTime;
     float moveInterval = 1.0f / speed;
 
     if (m_MoveTimer >= moveInterval)
     {
         m_MoveTimer -= moveInterval;
-        m_CurrentDirection = m_NextDirection;
-
-        sf::Vector2i dirVector = Utils::GetDirectionVector(m_CurrentDirection);
-        sf::Vector2i newHeadPos = m_Body[0] + dirVector;
-
-        m_Body.insert(m_Body.begin(), newHeadPos);
-
-        if (m_GrowthPending > 0)
-        {
-            m_GrowthPending--;
-        }
-        else
-        {
-            m_Body.pop_back();
-        }
+        Move();
     }
 }
 
-void Snake::Draw(sf::RenderWindow& window)
+void Snake::Move()
 {
-    for (size_t i = 0; i < m_Body.size(); ++i)
+    m_Direction = m_NextDirection;
+
+    sf::Vector2i newHead = m_Body.front();
+
+    switch (m_Direction)
     {
-        sf::Vector2i gridPos = m_Body[i];
-        sf::Vector2f screenPos(
-            GameConfig::FieldOffsetX + gridPos.x * GameConfig::GridSize,
-            GameConfig::FieldOffsetY + gridPos.y * GameConfig::GridSize
-        );
-
-        if (i == 0)
-        {
-            m_HeadSprite.setPosition(screenPos);
-            
-            if (m_CurrentDirection == Utils::Direction::Up)
-            {
-                m_HeadSprite.setRotation(270.0f);
-            }
-            else if (m_CurrentDirection == Utils::Direction::Down)
-            {
-                m_HeadSprite.setRotation(90.0f);
-            }
-            else if (m_CurrentDirection == Utils::Direction::Left)
-            {
-                m_HeadSprite.setRotation(180.0f);
-            }
-            else
-            {
-                m_HeadSprite.setRotation(0.0f);
-            }
-            
-            window.draw(m_HeadSprite);
-        }
-        else
-        {
-            m_BodySprite.setPosition(screenPos);
-            window.draw(m_BodySprite);
-        }
+    case Utils::Direction::Up:    newHead.y--; break;
+    case Utils::Direction::Down:  newHead.y++; break;
+    case Utils::Direction::Left:  newHead.x--; break;
+    case Utils::Direction::Right: newHead.x++; break;
     }
+
+    m_Body.insert(m_Body.begin(), newHead);
+    m_Body.pop_back();
 }
 
-void Snake::Grow(int segments)
+void Snake::Grow()
 {
-    m_GrowthPending += segments;
-}
-
-void Snake::SetDirection(Utils::Direction newDirection)
-{
-    if (!Utils::IsOppositeDirection(m_CurrentDirection, newDirection))
+    // Add segments at the tail using GameConfig value
+    for (int i = 0; i < GameConfig::SnakeGrowthAmount; ++i)
     {
-        m_NextDirection = newDirection;
+        m_Body.push_back(m_Body.back());
     }
-}
-
-sf::Vector2i Snake::GetHeadPosition() const
-{
-    return m_Body.empty() ? sf::Vector2i(0, 0) : m_Body[0];
-}
-
-Utils::Direction Snake::GetDirection() const
-{
-    return m_CurrentDirection;
 }
 
 bool Snake::CheckSelfCollision() const
 {
-    if (m_Body.size() < 2)
-    {
-        return false;
-    }
+    const sf::Vector2i& head = m_Body.front();
 
-    sf::Vector2i head = m_Body[0];
-    
     for (size_t i = 1; i < m_Body.size(); ++i)
     {
         if (m_Body[i] == head)
@@ -139,11 +107,19 @@ bool Snake::CheckSelfCollision() const
             return true;
         }
     }
-    
+
     return false;
 }
 
-bool Snake::IsPositionOnSnake(sf::Vector2i position) const
+bool Snake::CheckWallCollision() const
+{
+    const sf::Vector2i& head = m_Body.front();
+
+    return head.x < 0 || head.x >= GameConfig::FieldWidth ||
+        head.y < 0 || head.y >= GameConfig::FieldHeight;
+}
+
+bool Snake::IsPositionOnSnake(const sf::Vector2i& position) const
 {
     for (const auto& segment : m_Body)
     {
@@ -155,45 +131,96 @@ bool Snake::IsPositionOnSnake(sf::Vector2i position) const
     return false;
 }
 
-int Snake::GetLength() const
+sf::Vector2i Snake::GetHeadPosition() const
 {
-    return static_cast<int>(m_Body.size());
+    return m_Body.front();
+}
+
+const std::vector<sf::Vector2i>& Snake::GetBody() const
+{
+    return m_Body;
+}
+
+Utils::Direction Snake::GetDirection() const
+{
+    return m_Direction;
+}
+
+void Snake::Draw(sf::RenderWindow& window)
+{
+    for (size_t i = 0; i < m_Body.size(); ++i)
+    {
+        const sf::Vector2i& gridPos = m_Body[i];
+
+        sf::Vector2f screenPos(
+            static_cast<float>(GameConfig::FieldOffsetX + gridPos.x * GameConfig::GridSize),
+            static_cast<float>(GameConfig::FieldOffsetY + gridPos.y * GameConfig::GridSize)
+        );
+
+        if (i == 0) // Head
+        {
+            // Компенсация origin: добавляем половину размера клетки
+            sf::Vector2f headPos = screenPos;
+            headPos.x += static_cast<float>(GameConfig::GridSize) / 2.0f;
+            headPos.y += static_cast<float>(GameConfig::GridSize) / 2.0f;
+
+            m_HeadSprite.setPosition(headPos);
+
+            // Set rotation based on direction
+            float rotation = 0.0f;
+            switch (m_Direction)
+            {
+            case Utils::Direction::Right: rotation = 0.0f; break;
+            case Utils::Direction::Down:  rotation = 90.0f; break;
+            case Utils::Direction::Left:  rotation = 180.0f; break;
+            case Utils::Direction::Up:    rotation = 270.0f; break;
+            }
+            m_HeadSprite.setRotation(rotation);
+
+            window.draw(m_HeadSprite);
+        }
+        else // Body
+        {
+            m_BodySprite.setPosition(screenPos);
+            window.draw(m_BodySprite);
+        }
+    }
 }
 
 bool Snake::LoadTextures()
 {
-    bool headLoaded = m_HeadTexture.loadFromFile(GameConfig::SnakeHeadTexturePath);
-    assert(headLoaded && "Failed to load snake head texture");
-    
-    bool bodyLoaded = m_BodyTexture.loadFromFile(GameConfig::SnakeBodyTexturePath);
-    assert(bodyLoaded && "Failed to load snake body texture");
-
-    if (headLoaded && bodyLoaded)
+    if (!m_HeadTexture.loadFromFile(GameConfig::SnakeHeadTexturePath))
     {
-        m_HeadSprite.setTexture(m_HeadTexture);
-        m_BodySprite.setTexture(m_BodyTexture);
-
-        sf::Vector2u headSize = m_HeadTexture.getSize();
-        sf::Vector2u bodySize = m_BodyTexture.getSize();
-
-        m_HeadSprite.setScale(
-            static_cast<float>(GameConfig::GridSize) / headSize.x,
-            static_cast<float>(GameConfig::GridSize) / headSize.y
-        );
-
-        m_BodySprite.setScale(
-            static_cast<float>(GameConfig::GridSize) / bodySize.x,
-            static_cast<float>(GameConfig::GridSize) / bodySize.y
-        );
-
-        m_HeadSprite.setOrigin(headSize.x / 2.0f, headSize.y / 2.0f);
-        m_HeadSprite.setPosition(
-            m_HeadSprite.getPosition().x + GameConfig::GridSize / 2.0f,
-            m_HeadSprite.getPosition().y + GameConfig::GridSize / 2.0f
-        );
-
-        return true;
+        return false;
     }
 
-    return false;
+    if (!m_BodyTexture.loadFromFile(GameConfig::SnakeBodyTexturePath))
+    {
+        return false;
+    }
+
+    m_HeadSprite.setTexture(m_HeadTexture);
+    m_BodySprite.setTexture(m_BodyTexture);
+
+    // Set origin to center for proper rotation
+    sf::Vector2f headSize(
+        static_cast<float>(m_HeadTexture.getSize().x),
+        static_cast<float>(m_HeadTexture.getSize().y)
+    );
+    m_HeadSprite.setOrigin(headSize.x / 2.0f, headSize.y / 2.0f);
+
+    // Scale textures to fit grid size
+    float scaleX = static_cast<float>(GameConfig::GridSize) / headSize.x;
+    float scaleY = static_cast<float>(GameConfig::GridSize) / headSize.y;
+    m_HeadSprite.setScale(scaleX, scaleY);
+
+    sf::Vector2f bodySize(
+        static_cast<float>(m_BodyTexture.getSize().x),
+        static_cast<float>(m_BodyTexture.getSize().y)
+    );
+    scaleX = static_cast<float>(GameConfig::GridSize) / bodySize.x;
+    scaleY = static_cast<float>(GameConfig::GridSize) / bodySize.y;
+    m_BodySprite.setScale(scaleX, scaleY);
+
+    return true;
 }
