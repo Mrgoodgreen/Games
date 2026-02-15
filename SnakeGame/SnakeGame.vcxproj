@@ -18,6 +18,27 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Apple.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameField.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Menu.cpp" />
+    <ClCompile Include="ScoreTable.cpp" />
+    <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="Snake.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Apple.h" />
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="GameConfig.h" />
+    <ClInclude Include="GameField.h" />
+    <ClInclude Include="Menu.h" />
+    <ClInclude Include="ScoreTable.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="Snake.h" />
+    <ClInclude Include="Utils.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -157,9 +178,6 @@
       </IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="GameMain.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
