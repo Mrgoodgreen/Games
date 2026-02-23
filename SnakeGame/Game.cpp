@@ -334,7 +334,7 @@ void Game::HandleNameInputInput(sf::Keyboard::Key key)
 
         if (m_NameInputYesSelected)
         {
-            std::string finalName = m_PlayerName.empty() ? "XYZ" : m_PlayerName;
+            std::string finalName = m_PlayerName.empty() ? "JohnDoe" : m_PlayerName;
             m_ScoreTable.AddScore(finalName, m_CurrentScore);
             m_ScoreTable.SaveScores(); 
             std::cout << "Score added and saved: " << finalName << " - " << m_CurrentScore << std::endl;
