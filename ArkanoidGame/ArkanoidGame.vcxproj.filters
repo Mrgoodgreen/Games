@@ -103,5 +103,7 @@
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Brick.h" />
     <ClInclude Include="GameStateWin.h" />
+    <ClInclude Include="Collider.h" />
+    <ClInclude Include="Collision.h" />
   </ItemGroup>
 </Project>

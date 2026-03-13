@@ -5,6 +5,7 @@
 #include "GameSettings.h"
 #include "Brick.h"
 #include <vector>
+#include <memory>
 
 namespace ArkanoidGame
 {
@@ -31,7 +32,7 @@ namespace ArkanoidGame
         // Game objects (private: no direct external access)
         sf::RectangleShape platform;
         sf::CircleShape ball;
-        std::vector<Brick> bricks;
+        std::vector<std::unique_ptr<Brick>> bricks;
         int score = 0;
         int lives = 3;
 
