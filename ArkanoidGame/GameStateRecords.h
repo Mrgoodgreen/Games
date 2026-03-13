@@ -1,32 +1,28 @@
 #pragma once
+#include "IGameState.h"
 #include "SFML/Graphics.hpp"
-#include "GameSettings.h"
 #include <vector>
 
 namespace ArkanoidGame
 {
-    class GameStateRecordsData
+    // Records/high scores display state
+    class RecordsState : public IGameState
     {
-    public:
-        GameStateRecordsData() = default;
-        ~GameStateRecordsData() = default;
-
-        void init();
-        void shutdown();
-        void handleWindowEvent(const sf::Event& event);
-        void update(float timeDelta);
-        void draw(sf::RenderWindow& window);
-
     private:
         sf::Font font;
         sf::Text titleText;
         std::vector<sf::Text> tableTexts;
         sf::Text hintText;
-    };
 
-    void InitGameStateRecords(GameStateRecordsData& data);
-    void ShutdownGameStateRecords(GameStateRecordsData& data);
-    void HandleGameStateRecordsWindowEvent(GameStateRecordsData& data, const sf::Event& event);
-    void UpdateGameStateRecords(GameStateRecordsData& data, float timeDelta);
-    void DrawGameStateRecords(GameStateRecordsData& data, sf::RenderWindow& window);
+    public:
+        RecordsState() = default;
+        ~RecordsState() = default;
+
+        void onEnter() override;
+        void onExit() override;
+        void handleEvent(const sf::Event& event) override;
+        void update(float timeDelta) override;
+        void draw(sf::RenderWindow& window) override;
+        const char* getStateName() const override { return "RecordsState"; }
+    };
 }

@@ -1,16 +1,22 @@
 #include "GameStateGameOver.h"
+#include "GameStatePlaying.h"
+#include "GameStateMainMenu.h"
 #include "Application.h"
 #include "Game.h"
 #include "Text.h"
-#include <assert.h>
+#include <cassert>
 #include <sstream>
 #include <map>
+#include <iostream>
 
 namespace ArkanoidGame
 {
-    void GameStateGameOverData::init()
+    void GameOverState::onEnter()
     {
-        assert(font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf"));
+        std::cout << "[GameOverState] onEnter() called" << std::endl;
+        
+        bool fontLoaded = font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf");
+        std::cout << "[GameOverState] Font loaded: " << (fontLoaded ? "YES" : "NO") << std::endl;
 
         timeSinceGameOver = 0.f;
 
@@ -24,7 +30,6 @@ namespace ArkanoidGame
         gameOverText.setFillColor(sf::Color::Red);
         gameOverText.setString("GAME OVER");
 
-        recordsTableTexts.clear();
         recordsTableTexts.reserve(MAX_RECORDS_TABLE_SIZE);
 
         std::multimap<int, std::string> sortedRecordsTable;
@@ -39,7 +44,6 @@ namespace ArkanoidGame
             sortedRecordsTable.insert(std::make_pair(item.second, item.first));
         }
 
-        bool isPlayerInTable = false;
         auto it = sortedRecordsTable.rbegin();
         for (int i = 0; i < MAX_RECORDS_TABLE_SIZE && it != sortedRecordsTable.rend(); ++i, ++it)
         {
@@ -50,62 +54,55 @@ namespace ArkanoidGame
             sstream << i + 1 << ". " << it->second << ": " << it->first;
             text.setString(sstream.str());
             text.setFont(font);
+            text.setFillColor(sf::Color::White);
             text.setCharacterSize(24);
-            if (it->second == PLAYER_NAME)
-            {
-                text.setFillColor(sf::Color::Green);
-                isPlayerInTable = true;
-            }
-            else
-            {
-                text.setFillColor(sf::Color::White);
-            }
-        }
-
-        if (!isPlayerInTable && !recordsTableTexts.empty())
-        {
-            sf::Text& text = recordsTableTexts.back();
-            std::stringstream sstream;
-            sstream << MAX_RECORDS_TABLE_SIZE << ". " << PLAYER_NAME << ": " << playerScore;
-            text.setString(sstream.str());
-            text.setFillColor(sf::Color::Green);
         }
 
         hintText.setFont(font);
         hintText.setCharacterSize(24);
         hintText.setFillColor(sf::Color::White);
         hintText.setString("Press Space to restart\nEsc to exit to main menu");
+        
+        std::cout << "[GameOverState] onEnter() complete" << std::endl;
     }
 
-    void GameStateGameOverData::shutdown()
+    void GameOverState::onExit()
     {
-        // Resources are automatically released
+        std::cout << "[GameOverState] onExit() called" << std::endl;
+        // Resources cleaned up by destructor (RAII)
     }
 
-    void GameStateGameOverData::handleWindowEvent(const sf::Event& event)
+    void GameOverState::handleEvent(const sf::Event& event)
     {
         if (event.type == sf::Event::KeyPressed)
         {
             if (event.key.code == sf::Keyboard::Space)
             {
-                SwitchGameState(Application::Instance().GetGame(), GameStateType::Playing);
+                std::cout << "[GameOverState] Space - restarting game" << std::endl;
+                // Restart game
+                Game& game = Application::Instance().GetGame();
+                game.switchState(std::make_unique<PlayingState>(SCREEN_WIDTH, SCREEN_HEIGHT));
             }
             else if (event.key.code == sf::Keyboard::Escape)
             {
-                SwitchGameState(Application::Instance().GetGame(), GameStateType::MainMenu);
+                std::cout << "[GameOverState] Escape - back to menu" << std::endl;
+                // Go to main menu
+                Game& game = Application::Instance().GetGame();
+                game.switchState(std::make_unique<MainMenuState>());
             }
         }
     }
 
-    void GameStateGameOverData::update(float timeDelta)
+    void GameOverState::update(float timeDelta)
     {
         timeSinceGameOver += timeDelta;
 
+        // Blinking text effect
         sf::Color gameOverTextColor = (int)timeSinceGameOver % 2 ? sf::Color::Red : sf::Color::Yellow;
         gameOverText.setFillColor(gameOverTextColor);
     }
 
-    void GameStateGameOverData::draw(sf::RenderWindow& window)
+    void GameOverState::draw(sf::RenderWindow& window)
     {
         sf::Vector2f viewSize = window.getView().getSize();
 
@@ -131,11 +128,4 @@ namespace ArkanoidGame
         hintText.setPosition(viewSize.x / 2.f, viewSize.y - 50.f);
         window.draw(hintText);
     }
-
-    // Free-function wrappers
-    void InitGameStateGameOver(GameStateGameOverData& data) { data.init(); }
-    void ShutdownGameStateGameOver(GameStateGameOverData& data) { data.shutdown(); }
-    void HandleGameStateGameOverWindowEvent(GameStateGameOverData& data, const sf::Event& event) { data.handleWindowEvent(event); }
-    void UpdateGameStateGameOver(GameStateGameOverData& data, float timeDelta) { data.update(timeDelta); }
-    void DrawGameStateGameOver(GameStateGameOverData& data, sf::RenderWindow& window) { data.draw(window); }
 }

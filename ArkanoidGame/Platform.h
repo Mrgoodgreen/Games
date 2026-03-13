@@ -1,10 +1,11 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "GameSettings.h"
+#include "GameObject.h"
 
 namespace ArkanoidGame
 {
-    class Platform
+    class Platform : public GameObject
     {
     public:
         Platform();
@@ -12,16 +13,12 @@ namespace ArkanoidGame
 
         void Initialize(float width, float height, float x, float y);
         void Update(float timeDelta);
-        void Draw(sf::RenderWindow& window) const;
 
-        void SetPosition(float x, float y);
         void SetVelocity(float vx);
         void MoveLeft(float speed);
         void MoveRight(float speed);
         void Stop();
 
-        sf::Vector2f GetPosition() const;
-        sf::FloatRect GetBounds() const;
         float GetWidth() const;
         float GetHeight() const;
 
@@ -29,9 +26,11 @@ namespace ArkanoidGame
 
     private:
         sf::RectangleShape m_Shape;
-        sf::Vector2f m_Velocity;
         float m_MaxSpeed;
 
         void UpdatePosition(float timeDelta);
+
+        sf::Shape& GetShape() override;
+        const sf::Shape& GetShape() const override;
     };
 }

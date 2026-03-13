@@ -1,13 +1,15 @@
 #pragma once
+#include "IGameState.h"
 #include "SFML/Graphics.hpp"
 #include "SFML/Audio.hpp"
 #include "GameSettings.h"
+#include "Brick.h"
 #include <vector>
 
 namespace ArkanoidGame
 {
-    // Game state for the playing screen. Resources are owned by this class (RAII).
-    class GameStatePlayingData
+    // Playing state: main game logic with platform, ball, and bricks
+    class PlayingState : public IGameState
     {
     private:
         // Resources
@@ -29,7 +31,7 @@ namespace ArkanoidGame
         // Game objects (private: no direct external access)
         sf::RectangleShape platform;
         sf::CircleShape ball;
-        std::vector<sf::RectangleShape> bricks;
+        std::vector<Brick> bricks;
         int score = 0;
         int lives = 3;
 
@@ -57,42 +59,26 @@ namespace ArkanoidGame
 
     public:
         // Constructor sets up sizes/positions that depend on screen size
-        GameStatePlayingData(float screenWidth, float screenHeight);
+        PlayingState(float screenWidth, float screenHeight);
+        ~PlayingState() = default;
 
-        // Read-only accessors for basic state
+        // IGameState interface implementation
+        void onEnter() override;
+        void onExit() override;
+        void handleEvent(const sf::Event& event) override;
+        void update(float timeDelta) override;
+        void draw(sf::RenderWindow& window) override;
+        const char* getStateName() const override { return "PlayingState"; }
+
+        // State query methods
         int getScore() const { return score; }
         int getLives() const { return lives; }
 
-        // Controlled platform API (no direct shape access)
-        float getPlatformX() const { return platform.getPosition().x; }
-        sf::FloatRect getPlatformBounds() const { return platform.getGlobalBounds(); }
-        void setPlatformX(float x) { platform.setPosition(clamp(x, PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f), platform.getPosition().y); }
-        void movePlatformBy(float dx) { platform.move(dx, 0.f); }
-
-        // Controlled ball API
-        bool isBallAttached() const { return isBallAttachedToPlatform; }
-        void attachBallToPlatform() { isBallAttachedToPlatform = true; ball.setPosition(platform.getPosition().x, platform.getPosition().y - PLATFORM_HEIGHT / 2.0f - BALL_RADIUS); }
-        void launchBallWithAngle(float degrees) {
-            isBallAttachedToPlatform = false;
-            float rad = degrees * 3.14159265f / 180.0f;
-            ballVelocity = sf::Vector2f(cosf(rad), -sinf(rad)) * ballSpeed;
-        }
-
-        // Lifecycle and main operations (resources are members and freed automatically)
-        void init();
-        void handleWindowEvent(const sf::Event& event);
-        void update(float timeDelta);
-        void draw(sf::RenderWindow& window);
-
     private:
-        // Internal helper: process ball collisions and game logic
+        // Internal helpers
         void handleBallCollisions(float timeDelta);
+        void loadResources();
+        void applyTexturesOrFallback();
+        void setupUI();
     };
-
-    // Free-function wrappers used by Game.cpp to initialize/update/draw state
-    void InitGameStatePlaying(GameStatePlayingData& data);
-    void ShutdownGameStatePlaying(GameStatePlayingData& data);
-    void HandleGameStatePlayingWindowEvent(GameStatePlayingData& data, const sf::Event& event);
-    void UpdateGameStatePlaying(GameStatePlayingData& data, float timeDelta);
-    void DrawGameStatePlaying(GameStatePlayingData& data, sf::RenderWindow& window);
 }

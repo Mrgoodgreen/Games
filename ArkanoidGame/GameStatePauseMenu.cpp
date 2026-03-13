@@ -1,36 +1,49 @@
 #include "GameStatePauseMenu.h"
+#include "GameStateMainMenu.h"
 #include "Application.h"
 #include "Game.h"
-#include <assert.h>
+#include "Text.h"
+#include <cassert>
+#include <iostream>
 
 namespace ArkanoidGame
 {
-    void GameStatePauseMenuData::init()
+    void PauseMenuState::onEnter()
     {
-        assert(font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf"));
+        std::cout << "[PauseMenuState] onEnter() called" << std::endl;
+        
+        bool fontLoaded = font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf");
+        std::cout << "[PauseMenuState] Font loaded: " << (fontLoaded ? "YES" : "NO") << std::endl;
 
-        background.setFillColor(sf::Color(0, 0, 0, 128)); // semi-transparent black
+        background.setFillColor(sf::Color(0, 0, 0, 128));
 
         titleText.setString("Pause");
-        titleText.setFont(font);
+        if (fontLoaded) titleText.setFont(font);
         titleText.setCharacterSize(48);
         titleText.setFillColor(sf::Color::Red);
 
         MenuItem resumeItem;
         resumeItem.text.setString("Return to game");
-        resumeItem.text.setFont(font);
+        if (fontLoaded) resumeItem.text.setFont(font);
         resumeItem.text.setCharacterSize(24);
         resumeItem.onPressCallback = [](MenuItem&) {
-            PopGameState(Application::Instance().GetGame());
-            };
+            std::cout << "[PauseMenuState] Resume selected" << std::endl;
+            // Pop pause menu to return to game
+            Application::Instance().GetGame().popState();
+        };
 
         MenuItem exitItem;
         exitItem.text.setString("Exit to main menu");
-        exitItem.text.setFont(font);
+        if (fontLoaded) exitItem.text.setFont(font);
         exitItem.text.setCharacterSize(24);
         exitItem.onPressCallback = [](MenuItem&) {
-            SwitchGameState(Application::Instance().GetGame(), GameStateType::MainMenu);
-            };
+            std::cout << "[PauseMenuState] Exit to menu selected" << std::endl;
+            Game& game = Application::Instance().GetGame();
+            // Pop pause menu
+            game.popState();
+            // Switch to main menu (replaces playing state)
+            game.switchState(std::make_unique<MainMenuState>());
+        };
 
         MenuItem pauseMenu;
         pauseMenu.childrenOrientation = Orientation::Vertical;
@@ -38,22 +51,27 @@ namespace ArkanoidGame
         pauseMenu.childrens.push_back(resumeItem);
         pauseMenu.childrens.push_back(exitItem);
 
+        std::cout << "[PauseMenuState] Initializing menu..." << std::endl;
         menu.Init(pauseMenu);
+        
+        std::cout << "[PauseMenuState] onEnter() complete" << std::endl;
     }
 
-    void GameStatePauseMenuData::shutdown()
+    void PauseMenuState::onExit()
     {
-        // resources are released automatically
+        std::cout << "[PauseMenuState] onExit() called" << std::endl;
+        // Resources cleaned up by destructor (RAII)
     }
 
-    void GameStatePauseMenuData::handleWindowEvent(const sf::Event& event)
+    void PauseMenuState::handleEvent(const sf::Event& event)
     {
-        Game& game = Application::Instance().GetGame();
         if (event.type == sf::Event::KeyPressed)
         {
             if (event.key.code == sf::Keyboard::Escape)
             {
-                PopGameState(game);
+                std::cout << "[PauseMenuState] Escape - resuming game" << std::endl;
+                // ESC resumes game
+                Application::Instance().GetGame().popState();
             }
 
             if (event.key.code == sf::Keyboard::Enter)
@@ -72,11 +90,12 @@ namespace ArkanoidGame
         }
     }
 
-    void GameStatePauseMenuData::update(float /*timeDelta*/)
+    void PauseMenuState::update(float /*timeDelta*/)
     {
+        // Menu doesn't need time-based updates
     }
 
-    void GameStatePauseMenuData::draw(sf::RenderWindow& window)
+    void PauseMenuState::draw(sf::RenderWindow& window)
     {
         sf::Vector2f viewSize = (sf::Vector2f)window.getView().getSize();
 
@@ -89,11 +108,4 @@ namespace ArkanoidGame
 
         menu.Draw(window, window.getView().getCenter(), { 0.5f, 0.f });
     }
-
-    // Free-function wrappers
-    void InitGameStatePauseMenu(GameStatePauseMenuData& data) { data.init(); }
-    void ShutdownGameStatePauseMenu(GameStatePauseMenuData& data) { data.shutdown(); }
-    void HandleGameStatePauseMenuWindowEvent(GameStatePauseMenuData& data, const sf::Event& event) { data.handleWindowEvent(event); }
-    void UpdateGameStatePauseMenu(GameStatePauseMenuData& data, float timeDelta) { data.update(timeDelta); }
-    void DrawGameStatePauseMenu(GameStatePauseMenuData& data, sf::RenderWindow& window) { data.draw(window); }
 }

@@ -13,7 +13,7 @@ namespace ArkanoidGame
     const float PLATFORM_WIDTH = 100.0f;
     const float PLATFORM_HEIGHT = 20.0f;
     const float BALL_RADIUS = 10.0f;
-    const float INITIAL_BALL_SPEED = 250.0f;
+    const float INITIAL_BALL_SPEED = 1000.0f;
     const float PLATFORM_SPEED = 300.0f;
 
     const unsigned int BRICK_WIDTH = 80;

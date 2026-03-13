@@ -4,7 +4,7 @@
 namespace ArkanoidGame
 {
 	Ball::Ball()
-		: m_Velocity(0.f, 0.f), m_Radius(0.f), m_IsMoving(false)
+		: m_Radius(0.f), m_IsMoving(false)
 	{
 	}
 
@@ -34,24 +34,9 @@ namespace ArkanoidGame
 		HandleWallCollisions(playField);
 	}
 
-	void Ball::Draw(sf::RenderWindow& window) const
-	{
-		window.draw(m_Shape);
-	}
-
 	void Ball::SetVelocity(float vx, float vy)
 	{
 		m_Velocity = sf::Vector2f(vx, vy);
-	}
-
-	void Ball::SetPosition(float x, float y)
-	{
-		m_Shape.setPosition(x, y);
-	}
-
-	sf::Vector2f Ball::GetPosition() const
-	{
-		return m_Shape.getPosition();
 	}
 
 	sf::Vector2f Ball::GetVelocity() const
@@ -62,11 +47,6 @@ namespace ArkanoidGame
 	float Ball::GetRadius() const
 	{
 		return m_Radius;
-	}
-
-	sf::FloatRect Ball::GetBounds() const
-	{
-		return m_Shape.getGlobalBounds();
 	}
 
 	bool Ball::IsMoving() const
@@ -112,5 +92,15 @@ namespace ArkanoidGame
 			m_Velocity.x = -m_Velocity.x;
 			m_Shape.setPosition(playField.left + playField.width - m_Radius, pos.y);
 		}
+	}
+
+	sf::Shape& Ball::GetShape()
+	{
+		return m_Shape;
+	}
+
+	const sf::Shape& Ball::GetShape() const
+	{
+		return m_Shape;
 	}
 }

@@ -1,10 +1,11 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "GameSettings.h"
+#include "GameObject.h"
 
 namespace ArkanoidGame
 {
-	class Ball
+	class Ball : public GameObject
 	{
 	public:
 		Ball();
@@ -12,15 +13,11 @@ namespace ArkanoidGame
 
 		void Initialize(const sf::Texture& texture, float radius, float initialX, float initialY);
 		void Update(float timeDelta, const sf::FloatRect& playField);
-		void Draw(sf::RenderWindow& window) const;
 
 		void SetVelocity(float vx, float vy);
-		void SetPosition(float x, float y);
 		
-		sf::Vector2f GetPosition() const;
 		sf::Vector2f GetVelocity() const;
 		float GetRadius() const;
-		sf::FloatRect GetBounds() const;
 
 		bool IsMoving() const;
 		void Launch(float vx, float vy);
@@ -28,10 +25,12 @@ namespace ArkanoidGame
 
 	private:
 		sf::CircleShape m_Shape;
-		sf::Vector2f m_Velocity;
 		float m_Radius;
 		bool m_IsMoving;
 
 		void HandleWallCollisions(const sf::FloatRect& playField);
+
+		sf::Shape& GetShape() override;
+		const sf::Shape& GetShape() const override;
 	};
 }

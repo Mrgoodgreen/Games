@@ -1,4 +1,6 @@
 #include "GameStatePlaying.h"
+#include "GameStateGameOver.h"
+#include "GameStateWin.h"
 #include "Application.h"
 #include "Game.h"
 #include "Text.h"
@@ -7,43 +9,97 @@
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
+#include <iostream>
 
 namespace ArkanoidGame
 {
-    // Constructor sets up geometry and loads resources (RAII).
-    GameStatePlayingData::GameStatePlayingData(float screenWidth, float screenHeight)
+    PlayingState::PlayingState(float screenWidth, float screenHeight)
     {
-        // Prepare platform and ball geometry
+        std::cout << "[PlayingState] Constructor called" << std::endl;
+        
+        // Prepare platform geometry
         platform.setSize(sf::Vector2f(PLATFORM_WIDTH, PLATFORM_HEIGHT));
         platform.setOrigin(PLATFORM_WIDTH / 2.0f, PLATFORM_HEIGHT / 2.0f);
         platform.setPosition(screenWidth / 2.0f, screenHeight - PLATFORM_HEIGHT * 2.0f);
 
+        // Prepare ball geometry
         ball.setRadius(BALL_RADIUS);
         ball.setOrigin(BALL_RADIUS, BALL_RADIUS);
         ball.setPosition(screenWidth / 2.0f, screenHeight - PLATFORM_HEIGHT * 3.0f);
 
-        // Prepare bricks geometry (textures will be applied after loading)
+        // Prepare bricks geometry
         for (int row = 0; row < BRICK_ROWS; ++row) {
             for (int col = 0; col < BRICK_COLUMNS; ++col) {
-                sf::RectangleShape brick(sf::Vector2f(BRICK_WIDTH - 2.f, BRICK_HEIGHT - 2.f));
-                brick.setOutlineColor(sf::Color::Black);
-                brick.setOutlineThickness(1.0f);
-                brick.setOrigin(BRICK_WIDTH / 2.0f, BRICK_HEIGHT / 2.0f);
-                brick.setPosition(col * BRICK_WIDTH + BRICK_WIDTH / 2.0f,
+                Brick brick;
+                brick.Initialize(BRICK_WIDTH - 2.f, BRICK_HEIGHT - 2.f,
+                    col * BRICK_WIDTH + BRICK_WIDTH / 2.0f,
                     row * BRICK_HEIGHT + BRICK_HEIGHT * 3.0f);
+                brick.SetOutline(sf::Color::Black, 1.0f);
                 bricks.push_back(brick);
             }
         }
 
-        // Load resources (fall back to colors if textures/fonts missing)
+        // Prepare background - using lighter color for visibility
+        background.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
+        background.setPosition(0.f, 0.f);
+        background.setFillColor(sf::Color(30, 30, 80));  // Slightly lighter dark blue
+        
+        std::cout << "[PlayingState] Background size: " << SCREEN_WIDTH << "x" << SCREEN_HEIGHT << std::endl;
+        std::cout << "[PlayingState] Bricks created: " << bricks.size() << std::endl;
+
+        // Initial ball state
+        isBallAttachedToPlatform = true;
+        ballVelocity = sf::Vector2f(0.f, -ballSpeed);
+        
+        std::cout << "[PlayingState] Constructor complete - geometry initialized" << std::endl;
+    }
+
+    void PlayingState::onEnter()
+    {
+        std::cout << "[PlayingState] onEnter() called" << std::endl;
+        
+        // Load resources when state becomes active
+        loadResources();
+        applyTexturesOrFallback();
+        setupUI();
+        
+        std::cout << "[PlayingState] onEnter() complete" << std::endl;
+    }
+
+    void PlayingState::onExit()
+    {
+        std::cout << "[PlayingState] onExit() called" << std::endl;
+        // Resources cleaned up by destructor (RAII)
+    }
+
+    void PlayingState::loadResources()
+    {
+        std::cout << "[PlayingState] Loading resources..." << std::endl;
+        
+        // Load font and sounds with fallback flags
         fontLoaded = font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf");
+        std::cout << "[PlayingState] Font loaded: " << (fontLoaded ? "YES" : "NO") << std::endl;
+        
         hitSoundLoaded = hitSoundBuffer.loadFromFile(SOUNDS_PATH + "Hit.wav");
         gameOverSoundLoaded = gameOverSoundBuffer.loadFromFile(SOUNDS_PATH + "GameOver.wav");
 
+        // Load textures with fallback flags
         ballTextureLoaded = ballTexture.loadFromFile(TEXTURES_PATH + "Ball.png");
+        std::cout << "[PlayingState] Ball texture loaded: " << (ballTextureLoaded ? "YES" : "NO") << std::endl;
+        
         brickTextureLoaded = brickTexture.loadFromFile(TEXTURES_PATH + "Brick.png");
+        std::cout << "[PlayingState] Brick texture loaded: " << (brickTextureLoaded ? "YES" : "NO") << std::endl;
+        
         platformTextureLoaded = platformTexture.loadFromFile(TEXTURES_PATH + "Platform.png");
+        std::cout << "[PlayingState] Platform texture loaded: " << (platformTextureLoaded ? "YES" : "NO") << std::endl;
 
+        // Set up sounds if loaded
+        if (hitSoundLoaded) hitSound.setBuffer(hitSoundBuffer);
+        if (gameOverSoundLoaded) gameOverSound.setBuffer(gameOverSoundBuffer);
+    }
+
+    void PlayingState::applyTexturesOrFallback()
+    {
         // Apply platform texture or fallback color
         if (platformTextureLoaded) {
             platform.setTexture(&platformTexture);
@@ -63,23 +119,21 @@ namespace ArkanoidGame
         // Apply brick textures or colored fallback
         if (brickTextureLoaded) {
             for (auto& brick : bricks) {
-                brick.setFillColor(sf::Color::White);
-                brick.setTexture(&brickTexture);
+                brick.SetFillColor(sf::Color::White);
+                brick.SetTexture(&brickTexture);
             }
         }
         else {
             for (size_t i = 0; i < bricks.size(); ++i) {
                 int row = static_cast<int>(i) / BRICK_COLUMNS;
-                bricks[i].setFillColor(sf::Color(200 - row * 30, 100 + row * 10, 100));
+                bricks[i].SetFillColor(sf::Color(200 - row * 30, 100 + row * 10, 100));
             }
         }
+    }
 
-        // Background
-        background.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
-        background.setPosition(0.f, 0.f);
-        background.setFillColor(sf::Color(0, 0, 50));
-
-        // UI (only set up if font loaded)
+    void PlayingState::setupUI()
+    {
+        // Only set up UI if font loaded
         if (fontLoaded) {
             scoreText.setFont(font);
             scoreText.setCharacterSize(24);
@@ -99,33 +153,19 @@ namespace ArkanoidGame
             debugText.setCharacterSize(14);
             debugText.setFillColor(sf::Color::White);
         }
-
-        // Sounds
-        if (hitSoundLoaded) hitSound.setBuffer(hitSoundBuffer);
-        if (gameOverSoundLoaded) gameOverSound.setBuffer(gameOverSoundBuffer);
-
-        // Initial ball state
-        isBallAttachedToPlatform = true;
-        ballVelocity = sf::Vector2f(0.f, -ballSpeed);
     }
 
-    void GameStatePlayingData::init()
-    {
-        // Initialization performed in constructor (strict RAII)
-    }
-
-    void GameStatePlayingData::handleWindowEvent(const sf::Event& event)
+    void PlayingState::handleEvent(const sf::Event& event)
     {
         if (event.type == sf::Event::KeyPressed)
         {
-            if (event.key.code == sf::Keyboard::Escape)
+            if (event.key.code == sf::Keyboard::Space && isBallAttachedToPlatform)
             {
-                PushGameState(Application::Instance().GetGame(), GameStateType::PauseMenu, false);
-            }
-            else if (event.key.code == sf::Keyboard::Space && isBallAttachedToPlatform)
-            {
+                // Launch ball with a small random angle
                 float angleDeg = static_cast<float>((rand() % 60) - 30);
-                launchBallWithAngle(angleDeg);
+                float rad = angleDeg * 3.14159265f / 180.0f;
+                isBallAttachedToPlatform = false;
+                ballVelocity = sf::Vector2f(cosf(rad), -sinf(rad)) * ballSpeed;
             }
             else if (event.key.code == sf::Keyboard::F3)
             {
@@ -134,27 +174,29 @@ namespace ArkanoidGame
         }
     }
 
-    void GameStatePlayingData::update(float timeDelta)
+    void PlayingState::update(float timeDelta)
     {
         // Keyboard input - exclusive handling
         bool leftPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A);
         bool rightPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D);
 
         if (leftPressed && !rightPressed) {
-            movePlatformBy(-PLATFORM_SPEED * timeDelta);
+            platform.move(-PLATFORM_SPEED * timeDelta, 0.f);
         }
         else if (rightPressed && !leftPressed) {
-            movePlatformBy(PLATFORM_SPEED * timeDelta);
+            platform.move(PLATFORM_SPEED * timeDelta, 0.f);
         }
         else {
             // Follow mouse X position (window-relative) when no keys pressed
             sf::Vector2i mousePos = sf::Mouse::getPosition(Application::Instance().GetWindow());
             float mouseX = static_cast<float>(mousePos.x);
-            setPlatformX(clamp(mouseX, PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f));
+            float platformX = clamp(mouseX, PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f);
+            platform.setPosition(platformX, platform.getPosition().y);
         }
 
         // Clamp platform to screen bounds
-        setPlatformX(clamp(getPlatformX(), PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f));
+        float platformX = clamp(platform.getPosition().x, PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f);
+        platform.setPosition(platformX, platform.getPosition().y);
 
         // Ball update
         if (!isBallAttachedToPlatform) {
@@ -171,17 +213,16 @@ namespace ArkanoidGame
         if (fontLoaded) {
             scoreText.setString("Score: " + std::to_string(score));
             livesText.setString("Lives: " + std::to_string(lives));
-        }
 
-        // Update debug overlay text
-        if (debugEnabled && fontLoaded) {
-            std::ostringstream s;
-            s << "PlatformX=" << getPlatformX() << " Ball=(" << ball.getPosition().x << "," << ball.getPosition().y << ")";
-            debugText.setString(s.str());
+            if (debugEnabled) {
+                std::ostringstream s;
+                s << "PlatformX=" << platform.getPosition().x << " Ball=(" << ball.getPosition().x << "," << ball.getPosition().y << ")";
+                debugText.setString(s.str());
+            }
         }
     }
 
-    void GameStatePlayingData::handleBallCollisions(float /*timeDelta*/)
+    void PlayingState::handleBallCollisions(float /*timeDelta*/)
     {
         float ballLeft = ball.getPosition().x - BALL_RADIUS;
         float ballRight = ball.getPosition().x + BALL_RADIUS;
@@ -203,19 +244,21 @@ namespace ArkanoidGame
 
         // Bottom: life lost
         if (ballBottom > SCREEN_HEIGHT) {
-            if (!IsEnableOptions(Application::Instance().GetGame(), GameOptions::InfiniteLives)) {
-                lives--;
-            }
+            lives--;
 
             if (lives <= 0) {
                 if (gameOverSoundLoaded) gameOverSound.play();
+                std::cout << "[PlayingState] Game Over! Score: " << score << std::endl;
+                // Push game over state
                 Game& game = Application::Instance().GetGame();
                 auto& records = game.getRecordsTable();
                 records[PLAYER_NAME] = std::max(records[PLAYER_NAME], score);
-                PushGameState(game, GameStateType::GameOver, false);
+                game.pushState(std::make_unique<GameOverState>());
             }
             else {
-                attachBallToPlatform();
+                isBallAttachedToPlatform = true;
+                ball.setPosition(platform.getPosition().x,
+                    platform.getPosition().y - PLATFORM_HEIGHT / 2.0f - BALL_RADIUS);
             }
             return;
         }
@@ -240,11 +283,11 @@ namespace ArkanoidGame
 
         // Bricks collisions
         for (auto it = bricks.begin(); it != bricks.end();) {
-            if (ball.getGlobalBounds().intersects(it->getGlobalBounds())) {
+            if (ball.getGlobalBounds().intersects(it->GetBounds())) {
                 float ballCenterX = ball.getPosition().x;
                 float ballCenterY = ball.getPosition().y;
-                float brickCenterX = it->getPosition().x;
-                float brickCenterY = it->getPosition().y;
+                float brickCenterX = it->GetPosition().x;
+                float brickCenterY = it->GetPosition().y;
 
                 float dx = std::abs(ballCenterX - brickCenterX) - (BRICK_WIDTH / 2.0f + BALL_RADIUS);
                 float dy = std::abs(ballCenterY - brickCenterY) - (BRICK_HEIGHT / 2.0f + BALL_RADIUS);
@@ -267,17 +310,18 @@ namespace ArkanoidGame
 
         // Win condition
         if (bricks.empty()) {
+            std::cout << "[PlayingState] All bricks destroyed! Score: " << score << std::endl;
             Game& game = Application::Instance().GetGame();
             auto& records = game.getRecordsTable();
             records[PLAYER_NAME] = std::max(records[PLAYER_NAME], score);
-            PushGameState(game, GameStateType::GameOver, false);
+            game.pushState(std::make_unique<WinState>());
         }
     }
 
-    void GameStatePlayingData::draw(sf::RenderWindow& window)
+    void PlayingState::draw(sf::RenderWindow& window)
     {
         window.draw(background);
-        for (const auto& brick : bricks) window.draw(brick);
+        for (const auto& brick : bricks) brick.Draw(window);
         window.draw(platform);
         window.draw(ball);
 
@@ -300,11 +344,4 @@ namespace ArkanoidGame
             }
         }
     }
-
-    // Free function wrappers
-    void InitGameStatePlaying(GameStatePlayingData& data) { /* constructor did init() */ }
-    void ShutdownGameStatePlaying(GameStatePlayingData& data) { /* destructor will cleanup */ }
-    void HandleGameStatePlayingWindowEvent(GameStatePlayingData& data, const sf::Event& event) { data.handleWindowEvent(event); }
-    void UpdateGameStatePlaying(GameStatePlayingData& data, float timeDelta) { data.update(timeDelta); }
-    void DrawGameStatePlaying(GameStatePlayingData& data, sf::RenderWindow& window) { data.draw(window); }
 }

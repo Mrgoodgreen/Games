@@ -1,20 +1,25 @@
 #include "GameStateRecords.h"
+#include "GameStateMainMenu.h"
 #include "Application.h"
-#include "Text.h"
 #include "Game.h"
-#include "GameSettings.h"
-#include <assert.h>
+#include "Text.h"
+#include <cassert>
 #include <sstream>
 #include <map>
+#include <iostream>
+#include <memory>
 
 namespace ArkanoidGame
 {
-    void GameStateRecordsData::init()
+    void RecordsState::onEnter()
     {
-        assert(font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf"));
+        std::cout << "[RecordsState] onEnter() called" << std::endl;
+        
+        bool fontLoaded = font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf");
+        std::cout << "[RecordsState] Font loaded: " << (fontLoaded ? "YES" : "NO") << std::endl;
 
         titleText.setString("RECORDS");
-        titleText.setFont(font);
+        if (fontLoaded) titleText.setFont(font);
         titleText.setFillColor(sf::Color::Red);
         titleText.setCharacterSize(48);
 
@@ -41,14 +46,13 @@ namespace ArkanoidGame
             std::stringstream sstream;
             sstream << i + 1 << ". " << it->second << ": " << it->first;
             text.setString(sstream.str());
-            text.setFont(font);
+            if (fontLoaded) text.setFont(font);
             text.setFillColor(sf::Color::White);
             text.setCharacterSize(24);
         }
 
         if (!tableTexts.empty())
         {
-            // If player is not in table, ensure last entry shows player's score
             bool found = false;
             for (auto& t : tableTexts) {
                 if (t.getString().find(PLAYER_NAME) != std::string::npos) { found = true; break; }
@@ -63,32 +67,44 @@ namespace ArkanoidGame
         }
 
         hintText.setString("Press ESC to return back to main menu");
-        hintText.setFont(font);
+        if (fontLoaded) hintText.setFont(font);
         hintText.setFillColor(sf::Color::White);
         hintText.setCharacterSize(24);
+        
+        std::cout << "[RecordsState] onEnter() complete" << std::endl;
     }
 
-    void GameStateRecordsData::shutdown()
+    void RecordsState::onExit()
     {
-        // resources freed automatically
+        std::cout << "[RecordsState] onExit() called" << std::endl;
+        // Resources cleaned up by destructor (RAII)
     }
 
-    void GameStateRecordsData::handleWindowEvent(const sf::Event& event)
+    void RecordsState::handleEvent(const sf::Event& event)
     {
         if (event.type == sf::Event::KeyPressed)
         {
             if (event.key.code == sf::Keyboard::Escape)
             {
-                PopGameState(Application::Instance().GetGame());
+                std::cout << "[RecordsState] Escape - back to menu" << std::endl;
+                // If this RecordsState replaced the main menu (switchState), switch back to a fresh main menu.
+                Game& game = Application::Instance().GetGame();
+                if (game.stateStack.size() == 1) {
+                    game.switchState(std::make_unique<MainMenuState>());
+                } else {
+                    // Otherwise, if it was pushed, simply pop to return to previous state
+                    game.popState();
+                }
             }
         }
     }
 
-    void GameStateRecordsData::update(float /*timeDelta*/)
+    void RecordsState::update(float /*timeDelta*/)
     {
+        // Records state doesn't need updates
     }
 
-    void GameStateRecordsData::draw(sf::RenderWindow& window)
+    void RecordsState::draw(sf::RenderWindow& window)
     {
         sf::Vector2f viewSize = window.getView().getSize();
 
@@ -110,11 +126,4 @@ namespace ArkanoidGame
         hintText.setPosition(viewSize.x / 2.f, viewSize.y - 50.f);
         window.draw(hintText);
     }
-
-    // Free-function wrappers
-    void InitGameStateRecords(GameStateRecordsData& data) { data.init(); }
-    void ShutdownGameStateRecords(GameStateRecordsData& data) { data.shutdown(); }
-    void HandleGameStateRecordsWindowEvent(GameStateRecordsData& data, const sf::Event& event) { data.handleWindowEvent(event); }
-    void UpdateGameStateRecords(GameStateRecordsData& data, float timeDelta) { data.update(timeDelta); }
-    void DrawGameStateRecords(GameStateRecordsData& data, sf::RenderWindow& window) { data.draw(window); }
 }

@@ -1,32 +1,26 @@
 #pragma once
-#include "SFML/Graphics.hpp"
-#include "Text.h"
-#include "GameSettings.h"
+#include "IGameState.h"
 #include "Menu.h"
-#include <functional>
+#include "SFML/Graphics.hpp"
 
 namespace ArkanoidGame
 {
-    class GameStateMainMenuData
+    // Main menu state
+    class MainMenuState : public IGameState
     {
-    public:
-        GameStateMainMenuData() = default;
-        ~GameStateMainMenuData() = default;
-
-        void init();
-        void shutdown();
-        void handleWindowEvent(const sf::Event& event);
-        void update(float timeDelta);
-        void draw(sf::RenderWindow& window);
-
     private:
         Menu menu;
         sf::Font font;
-    };
 
-    void InitGameStateMainMenu(GameStateMainMenuData& data);
-    void ShutdownGameStateMainMenu(GameStateMainMenuData& data);
-    void HandleGameStateMainMenuWindowEvent(GameStateMainMenuData& data, const sf::Event& event);
-    void UpdateGameStateMainMenu(GameStateMainMenuData& data, float timeDelta);
-    void DrawGameStateMainMenu(GameStateMainMenuData& data, sf::RenderWindow& window);
+    public:
+        MainMenuState() = default;
+        ~MainMenuState() = default;
+
+        void onEnter() override;
+        void onExit() override;
+        void handleEvent(const sf::Event& event) override;
+        void update(float timeDelta) override;
+        void draw(sf::RenderWindow& window) override;
+        const char* getStateName() const override { return "MainMenuState"; }
+    };
 }

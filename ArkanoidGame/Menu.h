@@ -3,53 +3,57 @@
 #include "Text.h"
 #include <list>
 #include <functional>
-
+#include <vector>
 
 namespace ArkanoidGame
 {
-	class MenuItem
-	{
-	public:
-		sf::Text text;
-		sf::Text hintText; // Visible when child item is selected
-		Orientation childrenOrientation = Orientation::Vertical;
-		Alignment childrenAlignment = Alignment::Min;
-		float childrenSpacing = 10.f;
+    class MenuItem
+    {
+    public:
+        sf::Text text;
+        sf::Text hintText; // Visible when child item is selected
+        Orientation childrenOrientation = Orientation::Vertical;
+        Alignment childrenAlignment = Alignment::Min;
+        float childrenSpacing = 10.f;
 
-		sf::Color selectedColor = sf::Color::Yellow;
-		sf::Color deselectedColor = sf::Color::White;
+        sf::Color selectedColor = sf::Color::Yellow;
+        sf::Color deselectedColor = sf::Color::White;
 
-		bool isEnabled = true;
-		std::vector<MenuItem> childrens;
+        bool isEnabled = true;
+        std::vector<MenuItem> childrens;
 
-		std::function<void(MenuItem& item)> onPressCallback;
+        std::function<void(MenuItem& item)> onPressCallback;
 
-		MenuItem* parent = nullptr;
-	};
+        MenuItem* parent = nullptr;
+    };
 
-	class Menu
-	{
-	public:
-		void Init(const MenuItem& item);
+    class Menu
+    {
+    public:
+        void Init(const MenuItem& item);
 
-		void Update(float deltaTime);
+        void Update(float deltaTime);
 
-		void Draw(sf::RenderWindow& window, sf::Vector2f position, sf::Vector2f origin);
+        void Draw(sf::RenderWindow& window, sf::Vector2f position, sf::Vector2f origin);
 
-		void PressOnSelectedItem();
-		void GoBack();
-		
-		void SwitchToPreviousMenuItem();
-		void SwitchToNextMenuItem();
+        void PressOnSelectedItem();
+        void GoBack();
+        
+        void SwitchToPreviousMenuItem();
+        void SwitchToNextMenuItem();
 
-		MenuItem& GetCurrentContext();
+        MenuItem& GetCurrentContext();
 
-	private:
-		void InitMenuItem(MenuItem& item);
-		void SelectMenuItem(MenuItem& item);
+    private:
+        void InitMenuItem(MenuItem& item);
+        void SelectMenuItem(MenuItem& item);
 
-	private:
-		MenuItem rootItem;
-		MenuItem* selectedItem = nullptr;
-	};
+        // Helpers for path-based selection (avoid storing raw pointers into vectors)
+        MenuItem* getNodeByPath(const std::vector<std::size_t>& path);
+        bool findPathToItem(MenuItem* current, MenuItem* target, std::vector<std::size_t>& outPath);
+
+    private:
+        MenuItem rootItem;
+        std::vector<std::size_t> selectionPath; // path of indices from root to selected item (empty = none)
+    };
 }

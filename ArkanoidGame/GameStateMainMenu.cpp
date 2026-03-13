@@ -1,52 +1,70 @@
 #include "GameStateMainMenu.h"
+#include "GameStatePlaying.h"
+#include "GameStateRecords.h"
 #include "Application.h"
 #include "Game.h"
-#include <assert.h>
+#include "Text.h"
+#include <cassert>
+#include <iostream>
 
 namespace ArkanoidGame
 {
-    void GameStateMainMenuData::init()
+    void MainMenuState::onEnter()
     {
-        assert(font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf"));
+        std::cout << "[MainMenuState] onEnter() called" << std::endl;
+        
+        bool fontLoaded = font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf");
+        std::cout << "[MainMenuState] Font loaded: " << (fontLoaded ? "YES" : "NO") << std::endl;
 
+        // Start Game item
         MenuItem startGame;
         startGame.text.setString("Start Game");
-        startGame.text.setFont(font);
+        if (fontLoaded) startGame.text.setFont(font);
         startGame.text.setCharacterSize(24);
         startGame.onPressCallback = [](MenuItem&) {
-            SwitchGameState(Application::Instance().GetGame(), GameStateType::Playing);
-            };
+            std::cout << "[MainMenuState] Start Game selected" << std::endl;
+            try {
+                Game& game = Application::Instance().GetGame();
+                game.switchState(std::make_unique<PlayingState>(SCREEN_WIDTH, SCREEN_HEIGHT));
+            }
+            catch (const std::exception& e) {
+                std::cout << "[MainMenuState] Exception in Start Game: " << e.what() << std::endl;
+            }
+        };
 
+        // Options - Infinite Lives
         bool isInfiniteLives = IsEnableOptions(Application::Instance().GetGame(), GameOptions::InfiniteLives);
         MenuItem optionsInfiniteLivesItem;
         optionsInfiniteLivesItem.text.setString("Infinite Lives: " + std::string(isInfiniteLives ? "On" : "Off"));
-        optionsInfiniteLivesItem.text.setFont(font);
+        if (fontLoaded) optionsInfiniteLivesItem.text.setFont(font);
         optionsInfiniteLivesItem.text.setCharacterSize(24);
         optionsInfiniteLivesItem.onPressCallback = [](MenuItem& item) {
             Game& game = Application::Instance().GetGame();
             game.setOptions((GameOptions)((std::uint8_t)game.getOptions() ^ (std::uint8_t)GameOptions::InfiniteLives));
             bool isInfiniteLives = IsEnableOptions(game, GameOptions::InfiniteLives);
             item.text.setString("Infinite Lives: " + std::string(isInfiniteLives ? "On" : "Off"));
-            };
+        };
 
+        // Options - Unlimited Balls
         bool isUnlimitedBalls = IsEnableOptions(Application::Instance().GetGame(), GameOptions::UnlimitedBalls);
         MenuItem optionsUnlimitedBallsItem;
         optionsUnlimitedBallsItem.text.setString("Unlimited Balls: " + std::string(isUnlimitedBalls ? "On" : "Off"));
-        optionsUnlimitedBallsItem.text.setFont(font);
+        if (fontLoaded) optionsUnlimitedBallsItem.text.setFont(font);
         optionsUnlimitedBallsItem.text.setCharacterSize(24);
         optionsUnlimitedBallsItem.onPressCallback = [](MenuItem& item) {
             Game& game = Application::Instance().GetGame();
             game.setOptions((GameOptions)((std::uint8_t)game.getOptions() ^ (std::uint8_t)GameOptions::UnlimitedBalls));
             bool isUnlimitedBalls = IsEnableOptions(game, GameOptions::UnlimitedBalls);
             item.text.setString("Unlimited Balls: " + std::string(isUnlimitedBalls ? "On" : "Off"));
-            };
+        };
 
+        // Options submenu
         MenuItem options;
         options.text.setString("Options");
-        options.text.setFont(font);
+        if (fontLoaded) options.text.setFont(font);
         options.text.setCharacterSize(24);
         options.hintText.setString("Options");
-        options.hintText.setFont(font);
+        if (fontLoaded) options.hintText.setFont(font);
         options.hintText.setCharacterSize(48);
         options.hintText.setFillColor(sf::Color::Red);
         options.childrenOrientation = Orientation::Vertical;
@@ -55,36 +73,48 @@ namespace ArkanoidGame
         options.childrens.push_back(optionsInfiniteLivesItem);
         options.childrens.push_back(optionsUnlimitedBallsItem);
 
+        // Records item
         MenuItem recordsItem;
         recordsItem.text.setString("Records");
-        recordsItem.text.setFont(font);
+        if (fontLoaded) recordsItem.text.setFont(font);
         recordsItem.text.setCharacterSize(24);
         recordsItem.onPressCallback = [](MenuItem&) {
-            PushGameState(Application::Instance().GetGame(), GameStateType::Records, true);
-            };
+            std::cout << "[MainMenuState] Records selected" << std::endl;
+            Game& game = Application::Instance().GetGame();
+            // Replace current state with Records state (not overlay)
+            game.switchState(std::make_unique<RecordsState>());
+        };
 
+        // Exit Game - Yes/No submenu
         MenuItem yesItem;
         yesItem.text.setString("Yes");
-        yesItem.text.setFont(font);
+        if (fontLoaded) yesItem.text.setFont(font);
         yesItem.text.setCharacterSize(24);
         yesItem.onPressCallback = [](MenuItem&) {
-            SwitchGameState(Application::Instance().GetGame(), GameStateType::None);
-            };
+            std::cout << "[MainMenuState] Exit confirmed" << std::endl;
+            try {
+                Application::Instance().GetWindow().close();
+            }
+            catch (const std::exception& e) {
+                std::cout << "[MainMenuState] Exception in Exit: " << e.what() << std::endl;
+            }
+        };
 
         MenuItem noItem;
         noItem.text.setString("No");
-        noItem.text.setFont(font);
+        if (fontLoaded) noItem.text.setFont(font);
         noItem.text.setCharacterSize(24);
+        // Make 'No' actively return to parent menu when pressed
         noItem.onPressCallback = [this](MenuItem&) {
             menu.GoBack();
-            };
+        };
 
         MenuItem exitGameItem;
         exitGameItem.text.setString("Exit Game");
-        exitGameItem.text.setFont(font);
+        if (fontLoaded) exitGameItem.text.setFont(font);
         exitGameItem.text.setCharacterSize(24);
         exitGameItem.hintText.setString("Are you sure?");
-        exitGameItem.hintText.setFont(font);
+        if (fontLoaded) exitGameItem.hintText.setFont(font);
         exitGameItem.hintText.setCharacterSize(48);
         exitGameItem.hintText.setFillColor(sf::Color::Red);
         exitGameItem.childrenOrientation = Orientation::Horizontal;
@@ -93,9 +123,10 @@ namespace ArkanoidGame
         exitGameItem.childrens.push_back(yesItem);
         exitGameItem.childrens.push_back(noItem);
 
+        // Main menu
         MenuItem mainMenu;
         mainMenu.hintText.setString("Arkanoid Game");
-        mainMenu.hintText.setFont(font);
+        if (fontLoaded) mainMenu.hintText.setFont(font);
         mainMenu.hintText.setCharacterSize(48);
         mainMenu.hintText.setFillColor(sf::Color::Red);
         mainMenu.childrenOrientation = Orientation::Vertical;
@@ -106,15 +137,25 @@ namespace ArkanoidGame
         mainMenu.childrens.push_back(recordsItem);
         mainMenu.childrens.push_back(exitGameItem);
 
-        menu.Init(mainMenu);
+        std::cout << "[MainMenuState] Initializing menu with " << mainMenu.childrens.size() << " items..." << std::endl;
+        try {
+            menu.Init(mainMenu);
+            std::cout << "[MainMenuState] Menu initialized successfully" << std::endl;
+        }
+        catch (const std::exception& e) {
+            std::cout << "[MainMenuState] Exception in menu.Init(): " << e.what() << std::endl;
+            throw;
+        }
+        
+        std::cout << "[MainMenuState] onEnter() complete" << std::endl;
     }
 
-    void GameStateMainMenuData::shutdown()
+    void MainMenuState::onExit()
     {
-        // resources freed automatically
+        std::cout << "[MainMenuState] onExit() called" << std::endl;
     }
 
-    void GameStateMainMenuData::handleWindowEvent(const sf::Event& event)
+    void MainMenuState::handleEvent(const sf::Event& event)
     {
         if (event.type == sf::Event::KeyPressed)
         {
@@ -128,25 +169,25 @@ namespace ArkanoidGame
             }
 
             Orientation orientation = menu.GetCurrentContext().childrenOrientation;
-            if (orientation == Orientation::Vertical && event.key.code == sf::Keyboard::Up ||
-                orientation == Orientation::Horizontal && event.key.code == sf::Keyboard::Left)
+            if ((orientation == Orientation::Vertical && event.key.code == sf::Keyboard::Up) ||
+                (orientation == Orientation::Horizontal && event.key.code == sf::Keyboard::Left))
             {
                 menu.SwitchToPreviousMenuItem();
             }
-            else if (orientation == Orientation::Vertical && event.key.code == sf::Keyboard::Down ||
-                orientation == Orientation::Horizontal && event.key.code == sf::Keyboard::Right)
+            else if ((orientation == Orientation::Vertical && event.key.code == sf::Keyboard::Down) ||
+                     (orientation == Orientation::Horizontal && event.key.code == sf::Keyboard::Right))
             {
                 menu.SwitchToNextMenuItem();
             }
         }
     }
 
-    void GameStateMainMenuData::update(float /*timeDelta*/)
+    void MainMenuState::update(float /*timeDelta*/)
     {
-
+        // Menu doesn't need time-based updates
     }
 
-    void GameStateMainMenuData::draw(sf::RenderWindow& window)
+    void MainMenuState::draw(sf::RenderWindow& window)
     {
         sf::Vector2f viewSize = (sf::Vector2f)window.getView().getSize();
 
@@ -157,11 +198,4 @@ namespace ArkanoidGame
 
         menu.Draw(window, viewSize / 2.f, { 0.5f, 0.f });
     }
-
-    // Free function wrappers
-    void InitGameStateMainMenu(GameStateMainMenuData& data) { data.init(); }
-    void ShutdownGameStateMainMenu(GameStateMainMenuData& data) { data.shutdown(); }
-    void HandleGameStateMainMenuWindowEvent(GameStateMainMenuData& data, const sf::Event& event) { data.handleWindowEvent(event); }
-    void UpdateGameStateMainMenu(GameStateMainMenuData& data, float timeDelta) { data.update(timeDelta); }
-    void DrawGameStateMainMenu(GameStateMainMenuData& data, sf::RenderWindow& window) { data.draw(window); }
 }

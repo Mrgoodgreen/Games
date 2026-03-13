@@ -4,7 +4,7 @@
 namespace ArkanoidGame
 {
 	Platform::Platform()
-		: m_Velocity(0.f, 0.f), m_MaxSpeed(500.f)
+		: m_MaxSpeed(500.f)
 	{
 	}
 
@@ -26,16 +26,6 @@ namespace ArkanoidGame
 		UpdatePosition(timeDelta);
 	}
 
-	void Platform::Draw(sf::RenderWindow& window) const
-	{
-		window.draw(m_Shape);
-	}
-
-	void Platform::SetPosition(float x, float y)
-	{
-		m_Shape.setPosition(x, y);
-	}
-
 	void Platform::SetVelocity(float vx)
 	{
 		m_Velocity.x = std::max(-m_MaxSpeed, std::min(m_MaxSpeed, vx));
@@ -54,16 +44,6 @@ namespace ArkanoidGame
 	void Platform::Stop()
 	{
 		m_Velocity.x = 0.f;
-	}
-
-	sf::Vector2f Platform::GetPosition() const
-	{
-		return m_Shape.getPosition();
-	}
-
-	sf::FloatRect Platform::GetBounds() const
-	{
-		return m_Shape.getGlobalBounds();
 	}
 
 	float Platform::GetWidth() const
@@ -98,5 +78,15 @@ namespace ArkanoidGame
 			sf::Vector2f currentPos = m_Shape.getPosition();
 			m_Shape.setPosition(currentPos + m_Velocity * timeDelta);
 		}
+	}
+
+	sf::Shape& Platform::GetShape()
+	{
+		return m_Shape;
+	}
+
+	const sf::Shape& Platform::GetShape() const
+	{
+		return m_Shape;
 	}
 }

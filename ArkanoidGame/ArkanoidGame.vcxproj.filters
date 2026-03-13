@@ -46,6 +46,15 @@
     <ClCompile Include="Platform.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Brick.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="GameStateWin.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h">
@@ -90,5 +99,9 @@
     <ClInclude Include="Vector.h">
       <Filter>Sources</Filter>
     </ClInclude>
+    <ClInclude Include="IGameState.h" />
+    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="Brick.h" />
+    <ClInclude Include="GameStateWin.h" />
   </ItemGroup>
 </Project>

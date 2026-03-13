@@ -1,28 +1,36 @@
 #pragma once
 #include "IGameState.h"
-#include "Menu.h"
+#include "GameSettings.h"
 #include "SFML/Graphics.hpp"
 
 namespace ArkanoidGame
 {
-    // Pause menu state
-    class PauseMenuState : public IGameState
+    class WinState : public IGameState
     {
     private:
-        Menu menu;
         sf::Font font;
+        bool fontLoaded = false;
+
         sf::RectangleShape background;
         sf::Text titleText;
+        sf::Text questionText;
+        sf::Text yesText;
+        sf::Text noText;
+
+        bool selectYes = true;
 
     public:
-        PauseMenuState() = default;
-        ~PauseMenuState() = default;
+        WinState() = default;
+        ~WinState() = default;
 
         void onEnter() override;
         void onExit() override;
         void handleEvent(const sf::Event& event) override;
         void update(float timeDelta) override;
         void draw(sf::RenderWindow& window) override;
-        const char* getStateName() const override { return "PauseMenuState"; }
+        const char* getStateName() const override { return "WinState"; }
+
+    private:
+        void updateSelectionVisuals();
     };
 }

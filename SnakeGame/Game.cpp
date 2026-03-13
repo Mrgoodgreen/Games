@@ -109,7 +109,7 @@ void Game::ProcessEvents()
             }
         }
 
-        // ИСПРАВЛЕНИЕ: Обработка ввода текста для имени игрока
+        
         if (event.type == sf::Event::TextEntered && m_WaitingForNameInput)
         {
             std::cout << "Text entered: " << event.text.unicode << std::endl;
