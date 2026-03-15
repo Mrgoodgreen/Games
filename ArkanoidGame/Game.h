@@ -27,6 +27,7 @@ namespace ArkanoidGame
     private:
         GameOptions options = GameOptions::Default;
         std::unordered_map<std::string, int> recordsTable;
+        int lastScore = 0;
 
     public:
         Game() = default;
@@ -84,6 +85,9 @@ namespace ArkanoidGame
         // Records table
         const std::unordered_map<std::string, int>& getRecordsTable() const { return recordsTable; }
         std::unordered_map<std::string, int>& getRecordsTable() { return recordsTable; }
+
+        int getLastScore() const { return lastScore; }
+        void setLastScore(int score) { lastScore = score; }
     };
 
     // Free functions for game loop

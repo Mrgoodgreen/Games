@@ -4,13 +4,15 @@
 #include "SFML/Audio.hpp"
 #include "GameSettings.h"
 #include "Brick.h"
+#include "Bonus.h"
+#include "ScoreSystem.h"
+#include "PlayingMemento.h"
 #include <vector>
 #include <memory>
 
 namespace ArkanoidGame
 {
-    // Playing state: main game logic with platform, ball, and bricks
-    class PlayingState : public IGameState
+    class PlayingState : public IGameState, public IScoreObserver
     {
     private:
         // Resources
@@ -33,7 +35,19 @@ namespace ArkanoidGame
         sf::RectangleShape platform;
         sf::CircleShape ball;
         std::vector<std::unique_ptr<Brick>> bricks;
+
+        struct ActiveBonus
+        {
+            std::unique_ptr<Bonus> bonus;
+            float remainingTime;
+        };
+
+        std::vector<std::unique_ptr<Bonus>> fallingBonuses;
+        std::vector<ActiveBonus> activeBonuses;
+
+        ScoreSystem scoreSystem;
         int score = 0;
+        int scoreMultiplier = 1;
         int lives = 3;
 
         // UI
@@ -50,6 +64,8 @@ namespace ArkanoidGame
         bool isBallAttachedToPlatform = true;
         sf::Vector2f ballVelocity;
         float ballSpeed = INITIAL_BALL_SPEED;
+
+        std::unique_ptr<PlayingMemento> m_LastLifeMemento;
 
         // Sounds
         sf::Sound hitSound;
@@ -75,11 +91,22 @@ namespace ArkanoidGame
         int getScore() const { return score; }
         int getLives() const { return lives; }
 
+        // Score observer interface
+        void OnScoreChanged(int newScore) override;
+
     private:
         // Internal helpers
         void handleBallCollisions(float timeDelta);
         void loadResources();
         void applyTexturesOrFallback();
         void setupUI();
+
+        std::unique_ptr<Brick> createBrickByType(BrickType type) const;
+        void createLifeMemento();
+        void restoreFromLifeMemento();
+
+        BonusRuntimeContext buildBonusContext();
+        void updateBonuses(float timeDelta);
+        void clearBonuses();
     };
 }

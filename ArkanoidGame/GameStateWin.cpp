@@ -5,6 +5,8 @@
 #include "Game.h"
 #include "Text.h"
 #include <iostream>
+#include <sstream>
+#include <map>
 
 namespace ArkanoidGame
 {
@@ -26,6 +28,12 @@ namespace ArkanoidGame
             titleText.setFillColor(sf::Color::Green);
             titleText.setString("YOU WIN!");
 
+            Game& game = Application::Instance().GetGame();
+            finalScoreText.setFont(font);
+            finalScoreText.setCharacterSize(28);
+            finalScoreText.setFillColor(sf::Color::Yellow);
+            finalScoreText.setString("Final score: " + std::to_string(game.getLastScore()));
+
             questionText.setFont(font);
             questionText.setCharacterSize(28);
             questionText.setFillColor(sf::Color::White);
@@ -38,6 +46,29 @@ namespace ArkanoidGame
             noText.setFont(font);
             noText.setCharacterSize(28);
             noText.setString("No");
+
+            recordsTableTexts.clear();
+            recordsTableTexts.reserve(MAX_RECORDS_TABLE_SIZE);
+
+            std::multimap<int, std::string> sortedRecords;
+            for (const auto& item : game.getRecordsTable())
+            {
+                sortedRecords.insert(std::make_pair(item.second, item.first));
+            }
+
+            int index = 1;
+            for (auto it = sortedRecords.rbegin(); it != sortedRecords.rend() && index <= MAX_RECORDS_TABLE_SIZE; ++it, ++index)
+            {
+                sf::Text record;
+                record.setFont(font);
+                record.setCharacterSize(20);
+                record.setFillColor(sf::Color::White);
+
+                std::stringstream stream;
+                stream << index << ". " << it->second << ": " << it->first;
+                record.setString(stream.str());
+                recordsTableTexts.push_back(record);
+            }
         }
 
         selectYes = true;
@@ -108,19 +139,31 @@ namespace ArkanoidGame
             return;
 
         titleText.setOrigin(GetTextOrigin(titleText, { 0.5f, 1.f }));
-        titleText.setPosition(viewSize.x / 2.f, viewSize.y / 2.f - 70.f);
+        titleText.setPosition(viewSize.x / 2.f, 90.f);
         window.draw(titleText);
 
+        finalScoreText.setOrigin(GetTextOrigin(finalScoreText, { 0.5f, 0.f }));
+        finalScoreText.setPosition(viewSize.x / 2.f, 110.f);
+        window.draw(finalScoreText);
+
+        float recordsTop = 170.f;
+        for (std::size_t i = 0; i < recordsTableTexts.size(); ++i)
+        {
+            recordsTableTexts[i].setOrigin(GetTextOrigin(recordsTableTexts[i], { 0.5f, 0.f }));
+            recordsTableTexts[i].setPosition(viewSize.x / 2.f, recordsTop + static_cast<float>(i) * 28.f);
+            window.draw(recordsTableTexts[i]);
+        }
+
         questionText.setOrigin(GetTextOrigin(questionText, { 0.5f, 0.5f }));
-        questionText.setPosition(viewSize.x / 2.f, viewSize.y / 2.f - 10.f);
+        questionText.setPosition(viewSize.x / 2.f, viewSize.y - 120.f);
         window.draw(questionText);
 
         yesText.setOrigin(GetTextOrigin(yesText, { 0.5f, 0.f }));
-        yesText.setPosition(viewSize.x / 2.f - 60.f, viewSize.y / 2.f + 30.f);
+        yesText.setPosition(viewSize.x / 2.f - 60.f, viewSize.y - 90.f);
         window.draw(yesText);
 
         noText.setOrigin(GetTextOrigin(noText, { 0.5f, 0.f }));
-        noText.setPosition(viewSize.x / 2.f + 60.f, viewSize.y / 2.f + 30.f);
+        noText.setPosition(viewSize.x / 2.f + 60.f, viewSize.y - 90.f);
         window.draw(noText);
     }
 

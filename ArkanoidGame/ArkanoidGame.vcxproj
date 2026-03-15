@@ -178,6 +178,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="Ball.h" />
+    <ClInclude Include="Bonus.h" />
     <ClInclude Include="Brick.h" />
     <ClInclude Include="Collider.h" />
     <ClInclude Include="Collision.h" />
@@ -185,6 +186,8 @@
     <ClInclude Include="GameStateWin.h" />
     <ClInclude Include="IGameState.h" />
     <ClInclude Include="Platform.h" />
+    <ClInclude Include="PlayingMemento.h" />
+    <ClInclude Include="ScoreSystem.h" />
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameSettings.h" />

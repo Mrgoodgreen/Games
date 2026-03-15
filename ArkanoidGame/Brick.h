@@ -1,5 +1,6 @@
 #pragma once
 #include "GameObject.h"
+#include "PlayingMemento.h"
 
 namespace ArkanoidGame
 {
@@ -20,6 +21,12 @@ namespace ArkanoidGame
         virtual bool ShouldReflectBall() const { return true; }
         bool IsDestroyed() const { return m_Durability <= 0; }
 
+        virtual BrickType GetType() const { return BrickType::Normal; }
+        virtual int GetScoreValue() const { return 10; }
+
+        int GetDurability() const { return m_Durability; }
+        void SetDurability(int durability);
+
     protected:
         virtual void UpdateVisualState();
 
@@ -39,6 +46,9 @@ namespace ArkanoidGame
     public:
         StrongBrick();
 
+        BrickType GetType() const override { return BrickType::Strong; }
+        int GetScoreValue() const override { return 30; }
+
     protected:
         void UpdateVisualState() override;
     };
@@ -48,6 +58,8 @@ namespace ArkanoidGame
     public:
         GlassBrick();
 
+        BrickType GetType() const override { return BrickType::Glass; }
+        int GetScoreValue() const override { return 15; }
         bool ShouldReflectBall() const override { return false; }
 
     protected:

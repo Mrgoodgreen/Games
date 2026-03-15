@@ -99,11 +99,32 @@
     <ClInclude Include="Vector.h">
       <Filter>Sources</Filter>
     </ClInclude>
-    <ClInclude Include="IGameState.h" />
-    <ClInclude Include="GameObject.h" />
-    <ClInclude Include="Brick.h" />
-    <ClInclude Include="GameStateWin.h" />
-    <ClInclude Include="Collider.h" />
-    <ClInclude Include="Collision.h" />
+    <ClInclude Include="Bonus.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Brick.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Collider.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="GameStateWin.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="IGameState.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayingMemento.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="ScoreSystem.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

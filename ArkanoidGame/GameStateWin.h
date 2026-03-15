@@ -3,6 +3,7 @@
 #include "IGameState.h"
 #include "GameSettings.h"
 #include "SFML/Graphics.hpp"
+#include <vector>
 
 namespace ArkanoidGame
 {
@@ -14,9 +15,11 @@ namespace ArkanoidGame
 
         sf::RectangleShape background;
         sf::Text titleText;
+        sf::Text finalScoreText;
         sf::Text questionText;
         sf::Text yesText;
         sf::Text noText;
+        std::vector<sf::Text> recordsTableTexts;
 
         bool selectYes = true;
 

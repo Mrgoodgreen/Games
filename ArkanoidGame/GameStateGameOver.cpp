@@ -30,10 +30,17 @@ namespace ArkanoidGame
         gameOverText.setFillColor(sf::Color::Red);
         gameOverText.setString("GAME OVER");
 
+        Game& game = Application::Instance().GetGame();
+
+        finalScoreText.setFont(font);
+        finalScoreText.setCharacterSize(28);
+        finalScoreText.setFillColor(sf::Color::Yellow);
+        finalScoreText.setString("Final score: " + std::to_string(game.getLastScore()));
+
+        recordsTableTexts.clear();
         recordsTableTexts.reserve(MAX_RECORDS_TABLE_SIZE);
 
         std::multimap<int, std::string> sortedRecordsTable;
-        Game& game = Application::Instance().GetGame();
         int playerScore = 0;
         auto& records = game.getRecordsTable();
         auto itPlayer = records.find(PLAYER_NAME);
@@ -69,7 +76,6 @@ namespace ArkanoidGame
     void GameOverState::onExit()
     {
         std::cout << "[GameOverState] onExit() called" << std::endl;
-        // Resources cleaned up by destructor (RAII)
     }
 
     void GameOverState::handleEvent(const sf::Event& event)
@@ -79,14 +85,12 @@ namespace ArkanoidGame
             if (event.key.code == sf::Keyboard::Space)
             {
                 std::cout << "[GameOverState] Space - restarting game" << std::endl;
-                // Restart game
                 Game& game = Application::Instance().GetGame();
                 game.switchState(std::make_unique<PlayingState>(SCREEN_WIDTH, SCREEN_HEIGHT));
             }
             else if (event.key.code == sf::Keyboard::Escape)
             {
                 std::cout << "[GameOverState] Escape - back to menu" << std::endl;
-                // Go to main menu
                 Game& game = Application::Instance().GetGame();
                 game.switchState(std::make_unique<MainMenuState>());
             }
@@ -97,7 +101,6 @@ namespace ArkanoidGame
     {
         timeSinceGameOver += timeDelta;
 
-        // Blinking text effect
         sf::Color gameOverTextColor = (int)timeSinceGameOver % 2 ? sf::Color::Red : sf::Color::Yellow;
         gameOverText.setFillColor(gameOverTextColor);
     }
@@ -111,8 +114,12 @@ namespace ArkanoidGame
         window.draw(background);
 
         gameOverText.setOrigin(GetTextOrigin(gameOverText, { 0.5f, 1.f }));
-        gameOverText.setPosition(viewSize.x / 2.f, viewSize.y / 2 - 50.f);
+        gameOverText.setPosition(viewSize.x / 2.f, 110.f);
         window.draw(gameOverText);
+
+        finalScoreText.setOrigin(GetTextOrigin(finalScoreText, { 0.5f, 0.f }));
+        finalScoreText.setPosition(viewSize.x / 2.f, 120.f);
+        window.draw(finalScoreText);
 
         std::vector<sf::Text*> textsList;
         textsList.reserve(recordsTableTexts.size());
@@ -121,7 +128,7 @@ namespace ArkanoidGame
             textsList.push_back(&text);
         }
 
-        sf::Vector2f tablePosition = { viewSize.x / 2, viewSize.y / 2.f };
+        sf::Vector2f tablePosition = { viewSize.x / 2, 190.f };
         DrawTextList(window, textsList, 10.f, Orientation::Vertical, Alignment::Min, tablePosition, { 0.5f, 0.f });
 
         hintText.setOrigin(GetTextOrigin(hintText, { 0.5f, 1.f }));

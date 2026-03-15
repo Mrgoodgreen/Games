@@ -44,6 +44,18 @@ namespace ArkanoidGame
         return IsDestroyed();
     }
 
+    void Brick::SetDurability(int durability)
+    {
+        if (durability < 0)
+            durability = 0;
+
+        m_Durability = durability;
+        if (m_Durability > m_MaxDurability)
+            m_MaxDurability = m_Durability;
+
+        UpdateVisualState();
+    }
+
     void Brick::UpdateVisualState()
     {
         m_Shape.setFillColor(m_BaseColor);

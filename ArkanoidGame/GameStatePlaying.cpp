@@ -73,16 +73,29 @@ namespace ArkanoidGame
     {
         std::cout << "[PlayingState] onEnter() called" << std::endl;
 
+        scoreSystem.AddObserver(this);
+        scoreSystem.Reset();
+        lives = 3;
+        scoreMultiplier = 1;
+
         loadResources();
         applyTexturesOrFallback();
         setupUI();
+        createLifeMemento();
 
         std::cout << "[PlayingState] onEnter() complete" << std::endl;
     }
 
     void PlayingState::onExit()
     {
+        clearBonuses();
+        scoreSystem.RemoveObserver(this);
         std::cout << "[PlayingState] onExit() called" << std::endl;
+    }
+
+    void PlayingState::OnScoreChanged(int newScore)
+    {
+        score = newScore;
     }
 
     void PlayingState::loadResources()
@@ -180,6 +193,7 @@ namespace ArkanoidGame
                 float rad = angleDeg * 3.14159265f / 180.0f;
                 isBallAttachedToPlatform = false;
                 ballVelocity = sf::Vector2f(cosf(rad), -sinf(rad)) * ballSpeed;
+                createLifeMemento();
             }
             else if (event.key.code == sf::Keyboard::F3)
             {
@@ -205,11 +219,11 @@ namespace ArkanoidGame
         {
             sf::Vector2i mousePos = sf::Mouse::getPosition(Application::Instance().GetWindow());
             float mouseX = static_cast<float>(mousePos.x);
-            float platformX = clamp(mouseX, PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f);
+            float platformX = clamp(mouseX, platform.getSize().x / 2.0f, SCREEN_WIDTH - platform.getSize().x / 2.0f);
             platform.setPosition(platformX, platform.getPosition().y);
         }
 
-        float platformX = clamp(platform.getPosition().x, PLATFORM_WIDTH / 2.0f, SCREEN_WIDTH - PLATFORM_WIDTH / 2.0f);
+        float platformX = clamp(platform.getPosition().x, platform.getSize().x / 2.0f, SCREEN_WIDTH - platform.getSize().x / 2.0f);
         platform.setPosition(platformX, platform.getPosition().y);
 
         if (!isBallAttachedToPlatform)
@@ -220,8 +234,10 @@ namespace ArkanoidGame
         else
         {
             ball.setPosition(platform.getPosition().x,
-                platform.getPosition().y - PLATFORM_HEIGHT / 2.0f - BALL_RADIUS);
+                platform.getPosition().y - platform.getSize().y / 2.0f - BALL_RADIUS);
         }
+
+        updateBonuses(timeDelta);
 
         if (fontLoaded)
         {
@@ -268,13 +284,12 @@ namespace ArkanoidGame
                 Game& game = Application::Instance().GetGame();
                 auto& records = game.getRecordsTable();
                 records[PLAYER_NAME] = std::max(records[PLAYER_NAME], score);
+                game.setLastScore(score);
                 game.pushState(std::make_unique<GameOverState>());
             }
             else
             {
-                isBallAttachedToPlatform = true;
-                ball.setPosition(platform.getPosition().x,
-                    platform.getPosition().y - PLATFORM_HEIGHT / 2.0f - BALL_RADIUS);
+                restoreFromLifeMemento();
             }
             return;
         }
@@ -283,7 +298,7 @@ namespace ArkanoidGame
         {
             float platformCenter = platform.getPosition().x;
             float ballCenter = ball.getPosition().x;
-            float relativeIntersectX = (ballCenter - platformCenter) / (PLATFORM_WIDTH / 2.0f);
+            float relativeIntersectX = (ballCenter - platformCenter) / (platform.getSize().x / 2.0f);
 
             float bounceAngle = relativeIntersectX * 5.0f * 3.14159265f / 12.0f;
 
@@ -294,7 +309,7 @@ namespace ArkanoidGame
 
             if (hitSoundLoaded) hitSound.play();
 
-            ball.setPosition(ball.getPosition().x, platform.getPosition().y - PLATFORM_HEIGHT / 2.0f - BALL_RADIUS);
+            ball.setPosition(ball.getPosition().x, platform.getPosition().y - platform.getSize().y / 2.0f - BALL_RADIUS);
         }
 
         for (auto it = bricks.begin(); it != bricks.end();)
@@ -308,13 +323,20 @@ namespace ArkanoidGame
                     Collision::ReflectVelocity(ballVelocity, axis);
                 }
 
+                const sf::Vector2f brickPos = brick.GetPosition();
                 const bool destroyed = brick.OnHit();
                 if (hitSoundLoaded) hitSound.play();
 
                 if (destroyed)
                 {
+                    scoreSystem.AddPoints(brick.GetScoreValue() * scoreMultiplier);
+                    std::unique_ptr<Bonus> bonus = BonusFactory::TryCreate(brickPos);
+                    if (bonus)
+                    {
+                        fallingBonuses.push_back(std::move(bonus));
+                    }
+
                     it = bricks.erase(it);
-                    score += 10;
                 }
                 else
                 {
@@ -335,6 +357,7 @@ namespace ArkanoidGame
             Game& game = Application::Instance().GetGame();
             auto& records = game.getRecordsTable();
             records[PLAYER_NAME] = std::max(records[PLAYER_NAME], score);
+            game.setLastScore(score);
             game.pushState(std::make_unique<WinState>());
         }
     }
@@ -343,6 +366,7 @@ namespace ArkanoidGame
     {
         window.draw(background);
         for (const auto& brick : bricks) brick->Draw(window);
+        for (const auto& bonus : fallingBonuses) bonus->Draw(window);
         window.draw(platform);
         window.draw(ball);
 
@@ -366,5 +390,136 @@ namespace ArkanoidGame
                 window.draw(debugText);
             }
         }
+    }
+
+    std::unique_ptr<Brick> PlayingState::createBrickByType(BrickType type) const
+    {
+        if (type == BrickType::Strong)
+            return std::make_unique<StrongBrick>();
+        if (type == BrickType::Glass)
+            return std::make_unique<GlassBrick>();
+
+        return std::make_unique<Brick>();
+    }
+
+    void PlayingState::createLifeMemento()
+    {
+        m_LastLifeMemento = std::make_unique<PlayingMemento>();
+        m_LastLifeMemento->score = score;
+        m_LastLifeMemento->bricks.reserve(bricks.size());
+
+        for (const auto& brick : bricks)
+        {
+            BrickSnapshot snapshot;
+            snapshot.type = brick->GetType();
+            snapshot.position = brick->GetPosition();
+            snapshot.durability = brick->GetDurability();
+            m_LastLifeMemento->bricks.push_back(snapshot);
+        }
+    }
+
+    void PlayingState::restoreFromLifeMemento()
+    {
+        clearBonuses();
+
+        if (!m_LastLifeMemento)
+        {
+            isBallAttachedToPlatform = true;
+            ballSpeed = INITIAL_BALL_SPEED;
+            ballVelocity = sf::Vector2f(0.f, -ballSpeed);
+            ball.setPosition(platform.getPosition().x,
+                platform.getPosition().y - platform.getSize().y / 2.0f - BALL_RADIUS);
+            return;
+        }
+
+        bricks.clear();
+        bricks.reserve(m_LastLifeMemento->bricks.size());
+
+        for (const BrickSnapshot& snapshot : m_LastLifeMemento->bricks)
+        {
+            std::unique_ptr<Brick> brick = createBrickByType(snapshot.type);
+            brick->Initialize(BRICK_WIDTH - 2.f, BRICK_HEIGHT - 2.f, snapshot.position.x, snapshot.position.y);
+            brick->SetDurability(snapshot.durability);
+            brick->SetOutline(sf::Color::Black, 1.0f);
+            bricks.push_back(std::move(brick));
+        }
+
+        applyTexturesOrFallback();
+
+        scoreSystem.Reset();
+        scoreSystem.AddPoints(m_LastLifeMemento->score);
+
+        platform.setSize(sf::Vector2f(PLATFORM_WIDTH, PLATFORM_HEIGHT));
+        platform.setOrigin(PLATFORM_WIDTH / 2.f, PLATFORM_HEIGHT / 2.f);
+
+        scoreMultiplier = 1;
+        ballSpeed = INITIAL_BALL_SPEED;
+        ballVelocity = sf::Vector2f(0.f, -ballSpeed);
+        isBallAttachedToPlatform = true;
+        ball.setPosition(platform.getPosition().x,
+            platform.getPosition().y - platform.getSize().y / 2.0f - BALL_RADIUS);
+    }
+
+    BonusRuntimeContext PlayingState::buildBonusContext()
+    {
+        return BonusRuntimeContext{ platform, ballVelocity, ballSpeed, scoreMultiplier };
+    }
+
+    void PlayingState::updateBonuses(float timeDelta)
+    {
+        for (auto it = fallingBonuses.begin(); it != fallingBonuses.end();)
+        {
+            (*it)->Update(timeDelta);
+
+            if ((*it)->GetBounds().intersects(platform.getGlobalBounds()))
+            {
+                BonusRuntimeContext ctx = buildBonusContext();
+                (*it)->Apply(ctx);
+
+                ActiveBonus active;
+                active.remainingTime = (*it)->GetDuration();
+                active.bonus = std::move(*it);
+                activeBonuses.push_back(std::move(active));
+
+                it = fallingBonuses.erase(it);
+                continue;
+            }
+
+            if ((*it)->GetPosition().y > SCREEN_HEIGHT + 20.f)
+            {
+                it = fallingBonuses.erase(it);
+                continue;
+            }
+
+            ++it;
+        }
+
+        for (auto it = activeBonuses.begin(); it != activeBonuses.end();)
+        {
+            it->remainingTime -= timeDelta;
+            if (it->remainingTime <= 0.f)
+            {
+                BonusRuntimeContext ctx = buildBonusContext();
+                it->bonus->Revert(ctx);
+                it = activeBonuses.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    void PlayingState::clearBonuses()
+    {
+        BonusRuntimeContext ctx = buildBonusContext();
+        for (auto& active : activeBonuses)
+        {
+            active.bonus->Revert(ctx);
+        }
+
+        activeBonuses.clear();
+        fallingBonuses.clear();
+        scoreMultiplier = 1;
     }
 }
