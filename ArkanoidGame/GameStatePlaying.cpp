@@ -337,6 +337,7 @@ namespace ArkanoidGame
                     }
 
                     it = bricks.erase(it);
+                    createLifeMemento();
                 }
                 else
                 {
